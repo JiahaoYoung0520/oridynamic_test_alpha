@@ -17,6 +17,9 @@
 !/examples/monomer.fasta
 !/examples/batch.fasta
 !/examples/five_cases.json
+!/examples/five_cases_with_msa.json
+!/examples/msas/
+!/examples/msas/*.a3m
 !/examples/README.md
 /build/
 /dist/
@@ -40,5 +43,3 @@
 *.cif
 *.pdb
 *.log
-
-# gitignore不是打包白名单；正式发布仍按PUBLIC_RELEASE.md单独核查。

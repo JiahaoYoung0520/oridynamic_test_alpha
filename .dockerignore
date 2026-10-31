@@ -1,28 +1,15 @@
-# 防止权重、运行产物或个人配置进入Docker构建上下文。
+# Only source, documentation, and bundled examples enter the build context.
 **
-!local_msa.py
-!prepare.py
 !docker/
 !docker/Dockerfile.msa
 !docker/Dockerfile.inference
 !requirements-inference.txt
 !pyproject.toml
 !MANIFEST.in
-!predict.py
-!benchmark_inputs.py
-!benchmark_batch.py
-!batch_predict.py
-!batch_runtime.py
-!complex_inputs.py
 !oridynamic/
 !oridynamic/**
 !docs/
 !docs/**
-!compare_runs.py
-!inference_runtime.py
-!inference_timing.py
-!runtime_utils.py
-!weights_io.py
 !protenix/
 !protenix/**
 !runner/
@@ -33,12 +20,12 @@
 !examples/monomer.fasta
 !examples/batch.fasta
 !examples/five_cases.json
+!examples/five_cases_with_msa.json
+!examples/msas/
+!examples/msas/*.a3m
 !examples/README.md
 !LICENSE-PTX
 !README.md
 !INSTALL.md
-!PUBLIC_RELEASE.md
-!SOURCES.md
-!runtime_sources.json
 configs/local_paths.example.json
 **/__pycache__/**

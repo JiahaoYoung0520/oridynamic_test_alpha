@@ -9,10 +9,10 @@ import numpy as np
 import torch
 import biotite.structure as struc
 
-import batch_predict
-from complex_inputs import native_sample, proteins
-from inference_runtime import map_structure, validate_complex_features, write_coordinates
-from runtime_utils import build_reference_identities
+from oridynamic import batch_predict
+from oridynamic.complex_inputs import native_sample, proteins
+from oridynamic.inference_runtime import map_structure, validate_complex_features, write_coordinates
+from oridynamic.runtime_utils import build_reference_identities
 
 
 def tasks():

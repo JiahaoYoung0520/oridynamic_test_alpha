@@ -19,4 +19,4 @@ python -B -u -m oridynamic --manifest request.json \
   --seeds 0,1 --samples-per-seed 8 --out runs/from_online_msas_v1
 ```
 
-Report online preparation time separately from local inference time. The legacy `predict.py` entry point retains its earlier online-search compatibility, while the recommended batch entry point accepts existing MSAs, local search, or explicit query-only smoke tests.
+Report online preparation time separately from local inference time. The single-target `python -m oridynamic.predict` entry point retains its earlier online-search compatibility, while the recommended `oridynamic sample` entry point accepts existing MSAs, local search, or explicit query-only smoke tests.

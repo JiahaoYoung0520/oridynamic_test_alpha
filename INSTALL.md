@@ -68,9 +68,9 @@ For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`
 
 ```bash
 python -B -m unittest discover -s tests -v
-python -B predict.py --fasta examples/monomer.fasta --single-sequence \
+python -B -m oridynamic.predict --fasta examples/monomer.fasta --single-sequence \
   --check --out checks/new_install
-CUDA_VISIBLE_DEVICES=0 python -B -u predict.py \
+CUDA_VISIBLE_DEVICES=0 python -B -u -m oridynamic.predict \
   --fasta examples/monomer.fasta --single-sequence --anchor-candidates 1 \
   --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out runs/quick_smoke_v1
 ```
@@ -124,7 +124,7 @@ The default database prefixes are `uniref30_2302_db` and `colabfold_envdb_202108
 Check the local search configuration without searching or writing files:
 
 ```bash
-python -B local_msa.py --fasta examples/monomer.fasta --out runs/msa_check \
+oridynamic msa --fasta examples/monomer.fasta --out runs/msa_check \
   --msa-local-db /absolute/path/colabfold_db \
   --msa-search-executable "$PWD/.envs/msa/bin/colabfold_search" \
   --msa-mmseqs "$PWD/vendor/mmseqs18/mmseqs/bin/mmseqs" --check
@@ -138,6 +138,6 @@ The [batch guide](docs/batch_inference.md#outputs-and-timing) defines search and
 
 ## 5. Sources and scope
 
-The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX), [source attribution](SOURCES.md), and source fingerprints. Dependencies, model weights, and public databases retain their respective terms.
+The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX) and [source attribution](docs/SOURCES.md). Dependencies, model weights, and public databases retain their respective terms.
 
-The code package excludes research datasets and training entry points. See [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) for the release scope. User inputs, search results, and generated structures remain in each run's output directory.
+The code package includes inference modules and six small example MSAs. Model weights, CCD resources, full MSA databases, training entry points, and MD datasets are supplied separately or excluded. User inputs, search results, and generated structures remain in each run's output directory.

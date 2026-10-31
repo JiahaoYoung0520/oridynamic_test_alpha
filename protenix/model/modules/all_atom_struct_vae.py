@@ -1,5 +1,4 @@
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """All-atom structure VAE built from the native Protenix diffusion blocks.
 
 This module deliberately lives outside DiffusionModule.  It reuses the native

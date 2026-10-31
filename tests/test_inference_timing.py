@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from inference_timing import TimingLog
+from oridynamic.inference_timing import TimingLog
 
 
 class TimingTests(unittest.TestCase):

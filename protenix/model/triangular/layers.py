@@ -13,7 +13,6 @@
 # limitations under the License.
 # Copyright 2021 AlQuraishi Laboratory
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 import math
 from functools import partial, partialmethod
 from typing import Callable, List, Optional, Tuple, Union

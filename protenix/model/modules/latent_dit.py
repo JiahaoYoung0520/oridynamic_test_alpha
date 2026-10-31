@@ -1,5 +1,4 @@
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """AdaLN-Zero DiT backbone for the all-atom Stage-B latent generator.
 
 The public API intentionally mirrors :class:`LatentDenoiser`:

@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import torch
-from weights_io import load_weights, validate_payload, SCHEMAS, META_KEYS, JOINT_KEYS, PROFILE
+from oridynamic.weights_io import load_weights, validate_payload, SCHEMAS, META_KEYS, JOINT_KEYS, PROFILE
 
 
 class WeightTests(unittest.TestCase):
@@ -39,7 +39,7 @@ class WeightTests(unittest.TestCase):
     def test_no_unrestricted_load_in_release(self):
         root = Path(__file__).resolve().parents[1]
         for name in ('weights_io.py', 'inference_runtime.py', 'runtime_utils.py'):
-            self.assertNotIn('weights_only=False', (root / name).read_text())
+            self.assertNotIn('weights_only=False', (root / 'oridynamic' / name).read_text())
 
 
 if __name__ == '__main__':

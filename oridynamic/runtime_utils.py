@@ -35,7 +35,7 @@ def configure_sample_template(model, args, contract):
 
 
 def _torch_load(path: Path) -> Any:
-    from weights_io import load_weights
+    from oridynamic.weights_io import load_weights
     return load_weights(path, 'codec')
 
 def _move_to_device(value: Any, device: torch.device) -> Any:

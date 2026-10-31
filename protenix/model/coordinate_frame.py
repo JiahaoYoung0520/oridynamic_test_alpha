@@ -1,5 +1,4 @@
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """Deterministic reference-defined Cartesian frame for all-atom latent codecs.
 
 Only world-space target/reference coordinates are transformed. Chemical-local

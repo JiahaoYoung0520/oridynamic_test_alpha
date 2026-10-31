@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import batch_predict
+from oridynamic import batch_predict
 from oridynamic.cli import main
 from oridynamic.doctor import inspect
 
@@ -22,7 +22,7 @@ class PublicCliTests(unittest.TestCase):
 
     def test_sample_alias_and_environment_precedence(self):
         with patch.dict(os.environ, {'ORIDYNAMIC_PATHS': '/weights.json', 'ORIDYNAMIC_ASSETS': '/assets'}), \
-                patch('batch_predict.main') as sample:
+                patch('oridynamic.batch_predict.main') as sample:
             main(['sample', '--fasta', 'a.fasta', '--out', 'run'])
             self.assertEqual(sample.call_args.args[0][-4:], ['--paths', '/weights.json', '--assets-root', '/assets'])
             main(['--fasta', 'a.fasta', '--paths=custom.json', '--out', 'run'])

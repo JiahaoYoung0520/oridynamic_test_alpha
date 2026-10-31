@@ -14,7 +14,6 @@
 # Copyright 2021 AlQuraishi Laboratory
 
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 from abc import ABC, abstractmethod
 from functools import partial, partialmethod
 from typing import List, Optional

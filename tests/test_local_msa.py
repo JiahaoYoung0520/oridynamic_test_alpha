@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from local_msa import (add_arguments, attach_local_msa, command, preflight,
+from oridynamic.local_msa import (add_arguments, attach_local_msa, command, preflight,
                        run_search, search_environment, validate_a3m, validate_modes)
 
 
@@ -71,7 +71,7 @@ else:
             run_search(self.args, self.args.out / "msa")
 
     def test_failure_no_fallback(self):
-        with patch("local_msa.validate_a3m", side_effect=ValueError("wrong query")):
+        with patch("oridynamic.local_msa.validate_a3m", side_effect=ValueError("wrong query")):
             with self.assertRaisesRegex(ValueError, "wrong query"):
                 run_search(self.args, self.args.out)
         report = json.loads((self.args.out / "search.json").read_text())
@@ -142,8 +142,7 @@ else:
         config = self.root / "paths.json"
         config.write_text(json.dumps(dict(checkpoints={k:str(weight) for k in ("native", "codec", "joint")})))
         self.binary.write_text(f"#!{sys.executable}\nimport sys\nprint('--gpu --gpu-server --db3 --use-templates --unpack')\nsys.exit(0 if '--help' in sys.argv or 'version' in sys.argv else 7)\n")
-        script = Path(__file__).resolve().parents[1] / "predict.py"
-        cmd = [sys.executable, "-B", str(script), "--fasta", str(self.fasta), "--paths", str(config),
+        cmd = [sys.executable, "-B", "-m", "oridynamic.predict", "--fasta", str(self.fasta), "--paths", str(config),
                "--assets-root", str(assets.parent), "--msa-local-db", str(self.database),
                "--msa-search-executable", str(self.binary), "--msa-mmseqs", str(self.binary), "--out", str(self.args.out)]
         proc = subprocess.run(cmd, capture_output=True, text=True)

@@ -84,8 +84,6 @@ The runner stops on failure and preserves existing output. It requires a new out
 
 Cache writing converts NumPy scalar metadata to Python built-in types; reading retains `weights_only=True`. For caches produced before the `numpy._core.multiarray.scalar` fix, rerun with a new `--out` directory. Old caches are not migrated automatically. Previously valid plain-string/tensor caches retain the same format.
 
-The legacy `benchmark_batch.py` keeps one process per target for cold-start comparisons.
-
 ## Validation scope
 
 CPU tests cover the lifecycle, mixed MSA routing, atom identities, restricted cache serialization, and repeated sampling with small real codec/DiT/diffusion modules. The five-target GPU smoke test has also completed, generating ten final conformations with one base, codec, and Joint load per batch.

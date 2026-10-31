@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 import dataclasses
 from os.path import exists as opexists, join as opjoin
 from typing import Any, Dict, Mapping, Optional, Sequence

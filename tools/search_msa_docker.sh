@@ -48,10 +48,10 @@ docker run --rm --pull never --network none --read-only --tmpfs /tmp:rw,size=1g 
   --mount "type=bind,src=$database_path,dst=/db,readonly" \
   --mount "type=bind,src=$output_path,dst=/work" \
   --workdir /work --entrypoint /bin/bash "$image_id" -lc \
-  'exec python3 -B -u /release/local_msa.py --fasta /query.fasta --msa-local-db /db --out /work/msa "$@"' \
+  'cd /release && exec python3 -B -u -m oridynamic.local_msa --fasta /query.fasta --msa-local-db /db --out /work/msa "$@"' \
   bash --msa-device "$device" "$@"
 if [[ ! -s "$output_path/msa/unpaired.a3m" ]]; then
-  echo '未产生已验收A3M；不能启动后续推理。预检请直接使用local_msa.py --check。' >&2
+  echo '未产生已验收A3M；不能启动后续推理。预检请直接使用oridynamic msa --check。' >&2
   exit 1
 fi
 echo "[可用于推理] --msa-a3m $output_path/msa/unpaired.a3m"

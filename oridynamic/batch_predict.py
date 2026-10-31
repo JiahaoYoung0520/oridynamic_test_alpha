@@ -10,12 +10,12 @@ from pathlib import Path
 import re
 import time
 
-from inference_timing import TimingLog
-from local_msa import add_arguments, executable, run_search, validate_a3m, write_json
-from prepare import AMINO_ACIDS, fasta_records, file_info, seed_list
-from complex_inputs import load_native_targets, proteins
+from oridynamic.inference_timing import TimingLog
+from oridynamic.local_msa import add_arguments, executable, run_search, validate_a3m, write_json
+from oridynamic.prepare import AMINO_ACIDS, fasta_records, file_info, seed_list
+from oridynamic.complex_inputs import load_native_targets, proteins
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def parser():
@@ -173,7 +173,7 @@ def main(argv=None):
         weights[key] = (path if path.is_absolute() else a.paths.resolve().parent / path).resolve(strict=True)
         if not weights[key].is_file():
             raise ValueError(f'权重不是文件：{weights[key]}')
-    from predict import select_runtime
+    from oridynamic.predict import select_runtime
     a.runtime_root = select_runtime(ROOT)
     if paths.get('runtime_source_root'):
         select_runtime(Path(paths['runtime_source_root']))
@@ -236,7 +236,7 @@ def main(argv=None):
                     protein['effective_msa_identity'] = file_info(Path(protein['msa_a3m']))
         inference_started = time.perf_counter()
         with a.timing.stage('runtime_import'):
-            from batch_runtime import ResidentRuntime
+            from oridynamic.batch_runtime import ResidentRuntime
         engine = ResidentRuntime(a, weights)
         def progress(phase, index, target):
             print(f"[{phase} {index}/{len(targets)}] {target['name']}", flush=True)

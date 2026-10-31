@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from prepare import build_request, seed_list, write_request
+from oridynamic.prepare import build_request, seed_list, write_request
 
 
 class PreparationTests(unittest.TestCase):

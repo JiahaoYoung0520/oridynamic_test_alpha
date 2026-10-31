@@ -9,16 +9,16 @@ from pathlib import Path
 import sys
 import time
 
-from prepare import build_request, file_info
-from local_msa import add_arguments, attach_local_msa, preflight, validate_modes
-from inference_timing import TimingLog
+from oridynamic.prepare import build_request, file_info
+from oridynamic.local_msa import add_arguments, attach_local_msa, preflight, validate_modes
+from oridynamic.inference_timing import TimingLog
 
 
 def select_runtime(root: Path) -> Path:
     root = root.resolve(strict=True)
-    if root != Path(__file__).resolve().parent:
+    if root != Path(__file__).resolve().parents[1]:
         raise ValueError("此发布版只允许自身代码目录，不接受其他仓库runtime-root")
-    for name in ("runtime_utils.py", "protenix/model/modules/joint_ensemble.py"):
+    for name in ("oridynamic/runtime_utils.py", "protenix/model/modules/joint_ensemble.py"):
         if not (root / name).is_file():
             raise ValueError(f"缺少现有运行代码：{root / name}")
     for name, module in list(sys.modules.items()):
@@ -32,7 +32,7 @@ def select_runtime(root: Path) -> Path:
 
 def main():
     started = time.perf_counter()
-    here = Path(__file__).resolve().parent
+    here = Path(__file__).resolve().parents[1]
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--fasta", type=Path, required=True, help="一条蛋白序列")
     p.add_argument("--name", help="目标名，默认FASTA标题")
@@ -119,7 +119,7 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
     os.chdir(a.out)  # 原生相对路径缓存也限定在当前新任务，不写源码或共享资源目录。
     # 搜索发生在Torch/PTX导入和模型加载之前；失败不会静默改成在线或query-only。
-    from local_msa import write_json
+    from oridynamic.local_msa import write_json
     write_json(a.out / "request.json", request)
     a.timing = TimingLog(a.out, started)
     try:
@@ -128,7 +128,7 @@ def main():
                 attach_local_msa(a, native_input, request)
                 write_json(a.out / "request.json", request)
         with a.timing.stage('runtime_import'):
-            import inference_runtime as runtime
+            from oridynamic import inference_runtime as runtime
         result = runtime.run(a, paths, weights, native_input)
         result['timing_file'] = 'timing.json'
         a.timing.finish('cpu_check_complete' if a.check else 'inference_complete',

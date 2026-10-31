@@ -54,7 +54,18 @@ The example configuration expects checkpoints in the repository's `weights/` dir
 
 ## Quick start
 
-Generate an ensemble from a protein sequence and an existing A3M alignment:
+Run the five bundled examples: three monomers, one protein–ligand complex, and one protein–protein assembly. Their six protein MSAs are included, so no MSA search tools or databases are needed for this example.
+
+```bash
+oridynamic sample \
+  --input-json examples/five_cases_with_msa.json \
+  --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
+  --out runs/five_cases
+```
+
+This generates **two conformations per system**. Final structures are written to `runs/five_cases/targets/<target>/ensemble.cif`. Configure the environment, weights, and CCD resources above before running. See the [example guide](examples/README.md) for the included alignments.
+
+For your own protein sequence, provide its matching A3M alignment:
 
 ```bash
 oridynamic sample \
@@ -91,6 +102,7 @@ The selected chain must match the input sequence and provide the required heavy 
 
 | Available resources | How to use them |
 | :--- | :--- |
+| The five bundled examples | Use `examples/five_cases_with_msa.json`; alignments are included. |
 | An existing A3M alignment | Pass `--msa-a3m protein.a3m`. |
 | A local ColabFold/MMseqs2 database | Pass `--msa-local-db /data/colabfold_db` to search before inference. |
 | An online MSA service | Follow the [online MSA guide](docs/msa_online.md), then provide the resulting A3M file. |
@@ -125,13 +137,12 @@ Optional initial structures can be supplied with `--structure-dir anchors`, usin
 
 ```bash
 oridynamic sample \
-  --input-json examples/five_cases.json \
-  --msa-local-db /data/colabfold_db --msa-threads 16 \
+  --input-json examples/five_cases_with_msa.json \
   --seeds 0 --samples-per-seed 4 --sample-chunk-size 1 \
-  --out runs/five_cases
+  --out runs/complex_examples
 ```
 
-The [complex-input guide](docs/complex_inputs.md) covers ligand definitions, chain-specific MSAs, and optional structures. The [example guide](examples/README.md) also provides a small test that requires no MSA search.
+The [complex-input guide](docs/complex_inputs.md) covers ligand definitions, chain-specific MSAs, and optional structures. For new sequences, supply matching MSAs or use local search. The [example guide](examples/README.md) also covers the original sequence-only input.
 
 ## Documentation
 

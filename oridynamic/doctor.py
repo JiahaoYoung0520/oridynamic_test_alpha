@@ -21,8 +21,8 @@ def inspect(paths=None, assets_root=None, check_device=False):
         try: report['packages'][package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             report['packages'][package] = None; errors.append(f"缺少依赖：{package}")
-    spec = importlib.util.find_spec('batch_predict')
-    root = Path(spec.origin).resolve().parent if spec and spec.origin else None
+    spec = importlib.util.find_spec('oridynamic.batch_predict')
+    root = Path(spec.origin).resolve().parents[1] if spec and spec.origin else None
     report['runtime_root'] = str(root) if root else None
     if root is None: errors.append("找不到本包batch_predict入口")
     if paths:

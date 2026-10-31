@@ -11,14 +11,14 @@ import sys
 import numpy as np
 import torch
 
-import inference_runtime as rt
-import runtime_utils as runner
-from inference_timing import TimingLog
-from prepare import file_info, seed_list
-from predict import select_runtime
+from oridynamic import inference_runtime as rt
+from oridynamic import runtime_utils as runner
+from oridynamic.inference_timing import TimingLog
+from oridynamic.prepare import file_info, seed_list
+from oridynamic.predict import select_runtime
 from protenix.model.protenix import Protenix, update_input_feature_dict
-from weights_io import load_weights
-from complex_inputs import native_sample, proteins
+from oridynamic.weights_io import load_weights
+from oridynamic.complex_inputs import native_sample, proteins
 
 
 def _cache_tree(value):
@@ -110,8 +110,9 @@ class ResidentRuntime:
             self.saved, self.hashes = rt.load_parent(self.weights)
             self.cfg = rt.make_config(self.a, self.saved)
             self.code = {name:file_info(self.a.runtime_root / name)['sha256'] for name in (
-                'batch_predict.py', 'batch_runtime.py', 'inference_runtime.py', 'local_msa.py', 'complex_inputs.py',
-                'runtime_utils.py', 'protenix/model/modules/joint_ensemble.py')}
+                'oridynamic/batch_predict.py', 'oridynamic/batch_runtime.py',
+                'oridynamic/inference_runtime.py', 'oridynamic/local_msa.py', 'oridynamic/complex_inputs.py',
+                'oridynamic/runtime_utils.py', 'protenix/model/modules/joint_ensemble.py')}
         with self.timer.stage('native_model_load'):
             runner.reset_template_probe_rng(101)
             self.native = Protenix(self.cfg)

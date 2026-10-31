@@ -5,7 +5,6 @@
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """LoRA (Low-Rank Adaptation) for finetuning the protenix trunk.
 
 Wraps every `nn.Linear` (and subclass) descendant of a target trunk module

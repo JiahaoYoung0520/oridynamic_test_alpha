@@ -1,5 +1,4 @@
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """推理专用Joint；保留既有Heun/SDE、双上下文和anchor位移解码。"""
 from __future__ import annotations
 from dataclasses import dataclass, fields

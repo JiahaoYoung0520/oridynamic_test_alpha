@@ -13,7 +13,6 @@
 # limitations under the License.
 
 # pylint: disable=C0114,C0301
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 import os
 from pathlib import Path
 root = Path(os.environ.get('PROTENIX_ROOT_DIR', Path(__file__).resolve().parents[1] / 'assets'))

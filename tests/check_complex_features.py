@@ -16,21 +16,23 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--assets-root',type=Path,required=True)
     p.add_argument('--output-json',type=Path)
+    p.add_argument('--input-json',type=Path,default=ROOT/'examples/five_cases_with_msa.json')
+    p.add_argument('--single-sequence',action='store_true')
     a=p.parse_args()
     os.environ.update(PROTENIX_ROOT_DIR=str(a.assets_root.resolve()), LAYERNORM_TYPE='torch', PROTENIX_DISABLE_FUSED_LN='1')
     import numpy as np
     import torch
     from ml_collections import ConfigDict
-    import batch_predict
-    from complex_inputs import native_sample
-    from inference_runtime import prepare_features, map_structure, write_coordinates, make_batch
-    from inference_timing import TimingLog
+    from oridynamic import batch_predict
+    from oridynamic.complex_inputs import native_sample
+    from oridynamic.inference_runtime import prepare_features, map_structure, write_coordinates, make_batch
+    from oridynamic.inference_timing import TimingLog
     from protenix.data.inference.json_to_feature import SampleDictToFeatures
-    from runtime_utils import reset_template_probe_rng, build_reference_identities
-    from predict import select_runtime
+    from oridynamic.runtime_utils import reset_template_probe_rng, build_reference_identities
+    from oridynamic.predict import select_runtime
     select_runtime(ROOT)
-    args=batch_predict.parser().parse_args(['--input-json',str(ROOT/'examples/five_cases.json'),
-        '--single-sequence','--out','unused'])
+    args=batch_predict.parser().parse_args(['--input-json',str(a.input_json),
+        '--out','unused']+(['--single-sequence'] if a.single_sequence else []))
     rows=batch_predict.load_targets(args);reports=[]
     torch.set_num_threads(1)
     with tempfile.TemporaryDirectory(prefix='oridynamic-features-') as tmp:
@@ -41,8 +43,11 @@ def main():
             cfg.input_json_path=str(out/'input.json');cfg.dump_dir=str(out/'native')
             sample=native_sample(row)
             print('[CPU原生特征]',row['name'],flush=True)
-            f,atoms,ids=prepare_features(SimpleNamespace(out=out,single_sequence=True,msa_a3m=None,
+            f,atoms,ids=prepare_features(SimpleNamespace(out=out,single_sequence=a.single_sequence,msa_a3m=None,
                 input_json=True,timing=TimingLog(out)),cfg,[sample])
+            if not a.single_sequence:
+                assert f['msa'].shape[0]>1, row['name']
+                assert f['msa'].shape[-1]==len(f['token_index']), row['name']
             # 与直接调用原生SampleDictToFeatures逐值核对化学特征，而非自行生成另一份化学参考。
             reset_template_probe_rng(101)
             raw,raw_atoms,_=SampleDictToFeatures(copy.deepcopy(sample),extract_features_for_tfg=False).get_feature_dict()
@@ -65,7 +70,8 @@ def main():
             reports.append(dict(name=row['name'],modality=row['modality'],atoms=len(atoms),
                 tokens=len(f['token_index']),chains=len(set(atoms.chain_id.tolist())),
                 protein_atoms=int(f['is_protein'].sum()),ligand_atoms=int(f['is_ligand'].sum()),
-                native_chemical_features_equal=True,canonical_roundtrip=True,cif_error_A=error))
+                native_chemical_features_equal=True,canonical_roundtrip=True,cif_error_A=error,
+                msa_shape=list(f['msa'].shape),msa_mode=row['msa_mode']))
     result=dict(status='cpu_features_pass',cases=reports,model_forward=False,gpu_run=False,
                 runtime_root=str(ROOT),external_research_imports=False)
     if a.output_json:

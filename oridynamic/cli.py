@@ -19,14 +19,14 @@ def main(argv=None):
     # 保留python -m oridynamic --fasta ...旧调用，不改变其默认采样配置。
     command = "sample" if argv[0].startswith("-") else argv.pop(0)
     if command == "sample":
-        from batch_predict import main as sample
+        from oridynamic.batch_predict import main as sample
         for flag, variable in (("--paths", "ORIDYNAMIC_PATHS"), ("--assets-root", "ORIDYNAMIC_ASSETS")):
             if not any(v == flag or v.startswith(flag + "=") for v in argv) and os.environ.get(variable):
                 argv.extend((flag, os.environ[variable]))
         sample(argv)
         return 0
     if command == "msa":
-        from local_msa import main as search
+        from oridynamic.local_msa import main as search
         previous = sys.argv
         try:
             sys.argv = ["oridynamic msa", *argv]

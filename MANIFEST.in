@@ -1,4 +1,4 @@
-include README.md INSTALL.md PUBLIC_RELEASE.md SOURCES.md LICENSE-PTX
+include README.md INSTALL.md LICENSE-PTX
 include requirements-inference.txt pyproject.toml
 include configs/inference_defaults.json configs/base_diffusion_signature.json
 include configs/portable_paths.example.json configs/container_paths.example.json
@@ -6,8 +6,9 @@ recursive-include oridynamic *.py
 recursive-include protenix *.py
 recursive-include runner *.py
 recursive-include docs *.md
-include runtime_sources.json
 include examples/monomer.fasta examples/batch.fasta examples/five_cases.json examples/README.md
+include examples/five_cases_with_msa.json
+recursive-include examples/msas *.a3m
 prune tests
 prune runs
 prune inputs

@@ -13,10 +13,10 @@ import numpy as np
 import torch
 import biotite.structure as struc
 
-import batch_predict as cli
-from batch_runtime import ResidentRuntime, pack_atoms, unpack_atoms, write_prepared, read_prepared
-from inference_timing import TimingLog
-from runtime_utils import build_reference_identities
+from oridynamic import batch_predict as cli
+from oridynamic.batch_runtime import ResidentRuntime, pack_atoms, unpack_atoms, write_prepared, read_prepared
+from oridynamic.inference_timing import TimingLog
+from oridynamic.runtime_utils import build_reference_identities
 
 
 class ResidentBatchTests(unittest.TestCase):
@@ -218,7 +218,7 @@ class ResidentBatchTests(unittest.TestCase):
             try:
                 with mock.patch.dict(os.environ), mock.patch.object(cli,'run_search',side_effect=search), \
                      mock.patch.object(cli,'executable',side_effect=lambda s:s), \
-                     mock.patch('batch_runtime.ResidentRuntime',side_effect=build), redirect_stdout(io.StringIO()):
+                     mock.patch('oridynamic.batch_runtime.ResidentRuntime',side_effect=build), redirect_stdout(io.StringIO()):
                     cli.main(['--fasta',str(a.fasta),'--out',str(a.out),'--msa-dir',str(root),
                         '--msa-local-db',str(root/'db'),*self.fake_resources(root)])
             finally:

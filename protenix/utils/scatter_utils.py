@@ -14,7 +14,6 @@
 
 # from torch_scatter: https://github.com/rusty1s/pytorch_scatter/tree/master
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 from typing import Optional
 import torch
 

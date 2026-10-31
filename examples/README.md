@@ -1,42 +1,53 @@
 # Five example systems
 
-[five_cases.json](five_cases.json) contains three protein monomers, one protein–ligand complex, and one protein–protein assembly. The input consists of sequences, chain composition, and a public CCD identifier. It contains no trajectories, reference coordinates, precomputed MSAs, caches, or internal research paths.
+[five_cases_with_msa.json](five_cases_with_msa.json) contains three protein monomers, one protein–ligand complex, and one protein–protein assembly, with matching precomputed A3M alignments in [msas/](msas/). Paths are relative to the JSON file, so the examples work after cloning the repository into a new location.
 
-| Case | System | Selection rationale |
-| :--- | :--- | :--- |
-| [6jv8_A](https://www.rcsb.org/structure/6JV8) | Monomer | Small system with favorable historical RMSF-profile correlation |
-| [7n0j_E](https://www.rcsb.org/structure/7N0J) | Monomer | Small system with favorable historical RMSF-profile correlation |
-| [6tly_A](https://www.rcsb.org/structure/6TLY) | Monomer | Small system with a historical fluctuation-amplitude ratio closer to one |
-| [5T3N](https://www.rcsb.org/structure/5T3N) | Protein–ligand | A 153-residue protein with `CCD_75G`; selected for lower historical ligand-pose error |
-| A00C3, a public DynaPPI system | Protein–protein | Two chains totaling 317 residues; a smaller historical PP case with favorable RMSF-profile correlation |
+## Run the examples
 
-These are selected demonstrations, not a random test set or an unbiased benchmark. The sequences follow the previously processed system segments, including retained tags and termini, and may differ from complete PDB SEQRES sequences. Preserve the supplied sequences when running these examples.
+Follow [INSTALL.md](../INSTALL.md) to install the inference environment and configure `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS` for the model weights and CCD resources. MSA search tools and databases are not needed for the bundled examples.
 
-The 5T3N example uses public `CCD_75G` chemical features. Historical scores obtained with MD-derived chemical features are not reproduced merely by running this input. Historical selection also used an online-codec/32-candidate configuration, while this release uses fixed codec context and four anchor candidates. The five-system release smoke test has now completed; it validates execution, not those historical quality scores. The PP input requires no DynaPPI trajectory downloads.
+```bash
+oridynamic sample --input-json examples/five_cases_with_msa.json \
+  --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
+  --out runs/five_cases
+```
 
-## Inference with local MSAs
+This generates two final conformations per system, or ten in total. Each final ensemble is saved as `runs/five_cases/targets/<name>/ensemble.cif`. Use a new output directory for each run. Add `--plan` to validate inputs and resource paths without model inference or output creation.
 
-Follow [INSTALL.md](../INSTALL.md) to configure `ORIDYNAMIC_PATHS`, `ORIDYNAMIC_ASSETS`, the search tools, and public databases:
+## Included alignments
+
+| System | Type | Chain | Residues | A3M records, including query |
+| :--- | :--- | :--- | ---: | ---: |
+| [6jv8_A](https://www.rcsb.org/structure/6JV8) | Monomer | A | 76 | 119 |
+| [7n0j_E](https://www.rcsb.org/structure/7N0J) | Monomer | E | 101 | 227 |
+| [6tly_A](https://www.rcsb.org/structure/6TLY) | Monomer | A | 99 | 2,653 |
+| [5T3N](https://www.rcsb.org/structure/5T3N) | Protein–ligand, `CCD_75G` | A | 153 | 4,941 |
+| A00C3, DynaPPI | Protein–protein | A | 107 | 4,398 |
+| A00C3, DynaPPI | Protein–protein | B | 210 | 4,584 |
+
+The six files occupy about 3.6 MB in total. They reuse existing per-protein alignments from the ATLAS, MISATO, and DynaPPI data preparation. For 5T3N, query columns 7–159 of the existing 161-residue alignment were retained to match the supplied 153-residue sequence, together with insertions between those columns. No sequence search was rerun for this bundle.
+
+Every query matches its example sequence exactly, and every aligned row has the required number of columns. All six files are unpaired MSAs; the PP chains have separate alignments, with no supplied paired MSA. Ligands do not require MSAs. Record counts describe the supplied files, not the number of rows retained by model featurization.
+
+These demonstrations were selected from earlier experiments and are not an unbiased benchmark. Their processed sequences may retain tags or differ from complete PDB SEQRES sequences. Preserve the supplied sequences. The examples contain no MD trajectories, reference structures, model caches, or internal research paths.
+
+## Other MSA modes
+
+The original [five_cases.json](five_cases.json) contains the same systems without MSA paths. To search your own local database:
 
 ```bash
 oridynamic sample --input-json examples/five_cases.json \
   --msa-local-db /data/colabfold_db --msa-threads 16 \
-  --seeds 0 --samples-per-seed 4 --sample-chunk-size 1 \
-  --out runs/five_cases
+  --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
+  --out runs/five_cases_local_search
 ```
 
-For existing MSAs, set `unpairedMsaPath` in each `proteinChain` object and omit `--msa-local-db`. This example generates four final conformations per system, or 20 in total. By default, four initial-structure candidates are generated and one is selected as the anchor. Those candidates are separate from the final ensemble sample count.
-
-## Offline smoke test
-
-With the required weights and CCD resources already installed, query-only input can be selected explicitly for a small test without MSA search:
+For an explicitly query-only installation test:
 
 ```bash
 oridynamic sample --input-json examples/five_cases.json --single-sequence \
   --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
-  --out runs/five_cases_smoke
+  --out runs/five_cases_query_only
 ```
 
-This five-target configuration has completed on an NVIDIA H200 with the matching inference weights, producing two final conformations per target. Output files were present and the final, proposal, and latent tensors were finite. This is an execution smoke test, not an assessment under normal MSA conditions.
-
-Add `--plan` for a read-only input and resource-path check. It performs no model forward pass and does not replace real CCD featurization. Use an available GPU and a new output directory. See the [complex-input guide](../docs/complex_inputs.md) for per-chain MSAs and optional initial structures.
+The query-only five-target GPU smoke test previously completed on an NVIDIA H200. The bundled alignments are checked separately; execution of the query-only test does not establish ensemble quality with these MSAs. See the [complex-input guide](../docs/complex_inputs.md) for new systems, per-chain MSAs, and optional initial structures.

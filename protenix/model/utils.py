@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 from functools import partial
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 import numpy as np

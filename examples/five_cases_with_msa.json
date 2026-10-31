@@ -1,0 +1,96 @@
+[
+  {
+    "name": "6jv8_A",
+    "sequences": [
+      {
+        "proteinChain": {
+          "id": [
+            "A"
+          ],
+          "count": 1,
+          "sequence": "LQLLHQKVEEQAAKYKHRVPKKCCYDGARENKYETCEQRVARVTIGPHCIRAFNECCTIADKIRKESHHKGMLLGR",
+          "unpairedMsaPath": "msas/6jv8_A.a3m"
+        }
+      }
+    ]
+  },
+  {
+    "name": "7n0j_E",
+    "sequences": [
+      {
+        "proteinChain": {
+          "id": [
+            "E"
+          ],
+          "count": 1,
+          "sequence": "APQVITVSRFEVGKDKWAFNREEVMLTCRPGNALYVINPSTLVQYPLNDIAQKEVASGKTNAQPISVIQIDDPNNPGEKMSLAPFIERAEKLCVDHHHHHH",
+          "unpairedMsaPath": "msas/7n0j_E.a3m"
+        }
+      }
+    ]
+  },
+  {
+    "name": "6tly_A",
+    "sequences": [
+      {
+        "proteinChain": {
+          "id": [
+            "A"
+          ],
+          "count": 1,
+          "sequence": "GSSAAPGAIQCMNRHKMERHGKMPAGYKGFDCNVCDQPMLKITEKAYMYRCEKCDYDVCNQCAESRKFKEVHFLCAKCGKKFPSQTKLQYHSRGCRGPS",
+          "unpairedMsaPath": "msas/6tly_A.a3m"
+        }
+      }
+    ]
+  },
+  {
+    "name": "5T3N",
+    "sequences": [
+      {
+        "proteinChain": {
+          "id": [
+            "A"
+          ],
+          "count": 1,
+          "sequence": "HHEVLFQGPGAKKRKMYEDILSHVNILKDMDPYERCKVADCLKSKSYNDGEIIIKEGEEGDTFFILIDGNAVASKDNKVIKTYTKGDYFGELALLKNKPRAATIKAQNFCQVVYLDRKSFKRLLGPIEDILHRNVENYKKVLNELGLDTTCID",
+          "unpairedMsaPath": "msas/5T3N_A.a3m"
+        }
+      },
+      {
+        "ligand": {
+          "id": [
+            "L"
+          ],
+          "count": 1,
+          "ligand": "CCD_75G"
+        }
+      }
+    ]
+  },
+  {
+    "name": "A00C3",
+    "sequences": [
+      {
+        "proteinChain": {
+          "id": [
+            "A"
+          ],
+          "count": 1,
+          "sequence": "SLRQEDFPPRIVEHPSDLIVSKGEPATLNCKAEGRPTPTIEWYKGGERVETDKDDPRSHRMLLPSGSLFFLRIVHGRKSRPDEGVYVCVARNYLGEAVSHDASLEVA",
+          "unpairedMsaPath": "msas/A00C3_A.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "id": [
+            "B"
+          ],
+          "count": 1,
+          "sequence": "GSLHCPAACTCSNNIVDCRGKGLTEIPTNLPETITEIRLEQNTIKVIPPGAFSPYKKLRRIDLSNNQISELAPDAFQGLRSLNSLVLYGNKITELPKSLFEGLFSLQLLLLNANKINCLRVDAFQDLHNLNLLSLYDNKLQTIAKGTFSPLRAIQTMHLAQNPFICDCHLKWLADYLHTNPIETSGARCTSPRRLANKRIGQIKSKKFRC",
+          "unpairedMsaPath": "msas/A00C3_B.a3m"
+        }
+      }
+    ]
+  }
+]

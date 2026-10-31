@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "oridynamic-inference"
 version = "0.1.0a0"
-description = "OriDynamic：从蛋白序列和可选初始结构生成全原子系综，仅推理"
+description = "All-atom biomolecular ensemble generation with OriDynamic"
 readme = "README.md"
 license-files = ["LICENSE-PTX"]
 requires-python = ">=3.11,<3.12"
@@ -22,11 +22,6 @@ oridynamic = "oridynamic.cli:main"
 
 [tool.setuptools]
 include-package-data = false
-py-modules = [
-  "batch_predict", "batch_runtime", "predict", "prepare", "local_msa",
-  "inference_runtime", "inference_timing", "runtime_utils", "weights_io",
-  "benchmark_inputs", "benchmark_batch", "compare_runs", "complex_inputs",
-]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements-inference.txt"]}

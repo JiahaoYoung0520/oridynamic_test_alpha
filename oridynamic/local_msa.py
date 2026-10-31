@@ -12,7 +12,7 @@ import signal
 import subprocess
 import time
 
-from prepare import AMINO_ACIDS, fasta_records, file_info
+from oridynamic.prepare import AMINO_ACIDS, fasta_records, file_info
 
 
 def add_arguments(parser):
@@ -29,7 +29,7 @@ def validate_modes(args):
     if sum(bool(x) for x in (args.msa_a3m, args.single_sequence, args.msa_local_db)) > 1:
         raise ValueError("--msa-a3m、--single-sequence、--msa-local-db只能选择一种")
     if args.check and not (args.msa_a3m or args.single_sequence):
-        raise ValueError("predict --check不搜索；先用local_msa.py搜索，再提供--msa-a3m")
+        raise ValueError("predict --check不搜索；先用oridynamic msa搜索，再提供--msa-a3m")
 
 
 def query_sequence(fasta):

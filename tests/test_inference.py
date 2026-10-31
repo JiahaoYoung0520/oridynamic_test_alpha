@@ -8,13 +8,13 @@ import unittest
 
 os.environ["LAYERNORM_TYPE"] = "torch"
 os.environ["PROTENIX_DISABLE_FUSED_LN"] = "1"
-from predict import select_runtime
-import predict
-ROOT = Path(predict.__file__).resolve().parent
+from oridynamic.predict import select_runtime
+from oridynamic import predict
+ROOT = Path(predict.__file__).resolve().parents[1]
 select_runtime(ROOT)
 import torch
 import numpy as np
-from inference_runtime import choose_anchor, make_batch, map_structure, write_coordinates
+from oridynamic.inference_runtime import choose_anchor, make_batch, map_structure, write_coordinates
 
 
 class InferenceTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class InferenceTests(unittest.TestCase):
     def test_native_small_joint_runs_without_targets(self):
         sys.path.insert(0, str(ROOT / "tests"))
         from fixture_inference import fixture
-        from runtime_utils import generate_samples_chunked
+        from oridynamic.runtime_utils import generate_samples_chunked
         torch.set_num_threads(1)
         model, old = fixture(checkpoint=False)
         model.eval().requires_grad_(False)
@@ -53,7 +53,7 @@ class InferenceTests(unittest.TestCase):
 
     def test_structure_mapping_and_cif_roundtrip(self):
         import biotite.structure as struc
-        from runtime_utils import build_reference_identities
+        from oridynamic.runtime_utils import build_reference_identities
         atoms = struc.AtomArray(4)
         atoms.chain_id = ["A"]*4
         atoms.res_id = [42]*4

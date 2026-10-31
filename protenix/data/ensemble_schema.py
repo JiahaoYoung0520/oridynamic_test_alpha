@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 推理发行版：按符号摘取；来源哈希见runtime_sources.json。
 """Entity-agnostic data contract for reference-conditioned ensembles.
 
 The two important invariants in this module are:
