@@ -1,12 +1,12 @@
 <div align="center">
 
-# OriDynamic
+<img src="docs/images/oridynamic-logo.png" alt="OriDynamic" width="680">
 
 **All-atom conformational ensembles for biomolecular systems**
 
 Alpha inference release
 
-[Installation](#installation) · [Quick start](#quick-start) · [MSA options](#msa-options) · [Batch and complexes](#batch-and-complexes) · [Documentation](#documentation)
+[Weights](https://huggingface.co/DanielYoung0520/oridynamic_v0) · [Installation](#installation) · [Quick start](#quick-start) · [MSA options](#msa-options) · [Batch and complexes](#batch-and-complexes) · [Documentation](#documentation)
 
 </div>
 
@@ -50,7 +50,7 @@ oridynamic doctor
 
 The example configuration expects checkpoints in the repository's `weights/` directory. For another location, copy and edit the [path configuration](configs/portable_paths.example.json); relative checkpoint paths are resolved from that configuration file. `ORIDYNAMIC_ASSETS` points to the directory containing `common/components.cif` and `common/components.cif.rdkit_mol.pkl`.
 
-> **Weight availability:** Public checkpoint downloads are not yet available. This alpha release currently requires the matching inference weights to be supplied locally.
+> **Weights:** The matching bundle is hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). It is currently private; access and `hf auth login` are required. The default Joint export is `joint_step0000200.pt`, a predicted-anchor adaptation of Joint11500. See [model notes](docs/model_card.md) for its scope.
 
 ## Quick start
 

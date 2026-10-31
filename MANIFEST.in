@@ -6,6 +6,7 @@ recursive-include oridynamic *.py
 recursive-include protenix *.py
 recursive-include runner *.py
 recursive-include docs *.md
+include docs/images/oridynamic-logo.png
 include examples/monomer.fasta examples/batch.fasta examples/five_cases.json examples/README.md
 include examples/five_cases_with_msa.json
 recursive-include examples/msas *.a3m

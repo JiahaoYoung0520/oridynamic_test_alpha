@@ -19,7 +19,7 @@ def copy_source(destination):
                  'pyproject.toml', 'MANIFEST.in'):
         shutil.copyfile(ROOT / name, destination / name)
     trees = {'oridynamic': {'.py'}, 'protenix': {'.py'}, 'runner': {'.py'},
-             'configs': {'.py', '.json'}, 'docs': {'.md'}}
+             'configs': {'.py', '.json'}, 'docs': {'.md', '.png'}}
     files = []
     for directory, suffixes in trees.items():
         files.extend(p for p in (ROOT / directory).rglob('*')
@@ -60,6 +60,7 @@ def main():
         assert not any(set(p) & {'runs', 'inputs', 'weights', 'assets', 'datasets'} for p in parts)
         assert sum(tuple(p[:2]) == ('examples', 'msas') and p[-1].endswith('.a3m') for p in parts) == 6
         assert ('examples', 'five_cases_with_msa.json') in [tuple(p) for p in parts]
+        assert ('docs', 'images', 'oridynamic-logo.png') in [tuple(p) for p in parts]
         env = tmp / 'env'
         venv.EnvBuilder(with_pip=True, system_site_packages=True).create(env)
         python = str(env / 'bin/python')

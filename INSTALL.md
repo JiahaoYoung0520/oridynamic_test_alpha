@@ -2,7 +2,7 @@
 
 OriDynamic supports editable installation with `python -m pip install -e .` and installation from a built wheel. The public commands are `oridynamic sample`, `oridynamic msa`, and `oridynamic doctor`. See the [README](README.md) for a quick start.
 
-Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI, and public checkpoint downloads have not yet been configured. Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
+Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. Weights are hosted in the currently private [Hugging Face repository](https://huggingface.co/DanielYoung0520/oridynamic_v0). Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
 
 Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems. Keep other Protenix installations and research worktrees out of this environment's `PYTHONPATH`.
 
@@ -45,13 +45,26 @@ The default Torch backend does not require compiling fused LayerNorm. The option
 
 ## 2. Model weights and CCD
 
-Prepare the following files:
+Download the matching inference bundle from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). While the model repository is private, use an account with access:
+
+```bash
+python -m pip install -U huggingface_hub
+hf auth login
+hf download DanielYoung0520/oridynamic_v0 \
+  protenix_base_default_v1.0.0.pt \
+  all_atom_struct_vae_step0100000.pt \
+  joint_step0000200.pt \
+  weights_manifest.json \
+  --local-dir weights
+```
+
+Run this command from the code repository root. The expected layout is:
 
 ```text
 weights/
   protenix_base_default_v1.0.0.pt
   all_atom_struct_vae_step0100000.pt
-  joint_step0011500.pt
+  joint_step0000200.pt
   weights_manifest.json
 assets/common/
   components.cif
@@ -62,7 +75,7 @@ The three checkpoints must be the matching inference exports. Older training che
 
 Prepare the matching CCD files, including the RDKit companion file, according to the [Protenix project](https://github.com/bytedance/Protenix). Use a trusted source for the pickle file. These resources are not downloaded automatically.
 
-For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. Public checkpoint and container-image downloads are not yet provided. Resource redistribution terms are tracked separately from the source-code release.
+For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains weights only; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
 
 ## 3. Checks and GPU smoke tests
 
@@ -87,7 +100,7 @@ docker run --rm --network none --gpus device=0 \
     --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out /output/run
 ```
 
-A five-target GPU smoke test covering three monomers, one PL complex, and one PP assembly has completed in the existing runtime, with two conformations per target. This validates the execution path for those inputs. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
+The earlier Joint11500 release completed a five-target GPU smoke test covering three monomers, one PL complex, and one PP assembly in the existing runtime, with two conformations per target. That run predates Joint200; validation for the current checkpoint is documented in [model notes](docs/model_card.md). This validates the execution path for those inputs. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
 
 ## 4. Local MSA search with ColabFold/MMseqs2
 

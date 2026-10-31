@@ -54,7 +54,7 @@ See [INSTALL.md](../INSTALL.md) for local installation, CPU/GPU search, and the 
 ## Model lifecycle and memory
 
 1. Validate inputs and prepare all MSAs.
-2. Load base Protenix once, compute each target's frozen context `C0`, and predict or map its anchor.
+2. Load base Protenix once, prepare each target, and predict or map its anchor. Base context is cached for compatibility with older checkpoints; Joint200 decoding uses the subsequent online LoRA context.
 3. After all anchors and contexts are saved, load the autoencoder, DiT, and Joint state and inject LoRA into the base model.
 4. Process targets in turn, computing the online LoRA context and generating samples with the selected anchor.
 

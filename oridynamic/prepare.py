@@ -98,7 +98,7 @@ def build_request(args: argparse.Namespace) -> tuple[list[dict], dict]:
         "ensemble": {"seeds": seeds, "samples_per_seed": args.samples_per_seed,
                      "total_samples": len(seeds) * args.samples_per_seed,
                      "sample_chunk_size": args.sample_chunk_size},
-        "model_route": "legacy_joint11500_fixed_anchor_codec",
+        "model_route": "checkpoint_condition_contract_pending_validation",
         "template_search": False, "dit_reference": False,
         "sampling_protocol": "pending_saved_checkpoint_and_verified_inference_binding",
         "pending": ["MSA/原生特征适配", "无标签Joint batch与固定/在线上下文",

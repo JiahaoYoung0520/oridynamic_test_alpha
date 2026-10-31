@@ -60,6 +60,7 @@ def fixture(checkpoint=True):
     native = TinyTrunk()
     cfg = JointConfig(samples=2, fm_steps=2, refiner_steps=2, sigma_init=1.0, activation_checkpoint=False)
     model = JointEnsembleModel(native, generator, codec, torch.zeros(3), torch.ones(3), cfg)
+    model.condition_contract = 'fixed_base_codec__online_lora_generator_refiner_v1'
     features = dict(example['input_feature_dict'])
     features.update(test_si=example['s_inputs'], test_s=example['s_trunk'], test_z=example['z_trunk'])
     target = example['reference_coordinate'][None] + 0.3 * torch.randn(4, 6, 3)

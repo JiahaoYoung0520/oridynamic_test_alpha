@@ -111,7 +111,7 @@ class ResidentRuntime:
             self.cfg = rt.make_config(self.a, self.saved)
             self.code = {name:file_info(self.a.runtime_root / name)['sha256'] for name in (
                 'oridynamic/batch_predict.py', 'oridynamic/batch_runtime.py',
-                'oridynamic/inference_runtime.py', 'oridynamic/local_msa.py', 'oridynamic/complex_inputs.py',
+                'oridynamic/inference_runtime.py', 'oridynamic/codec_condition.py', 'oridynamic/local_msa.py', 'oridynamic/complex_inputs.py',
                 'oridynamic/runtime_utils.py', 'protenix/model/modules/joint_ensemble.py')}
         with self.timer.stage('native_model_load'):
             runner.reset_template_probe_rng(101)
@@ -250,6 +250,7 @@ class ResidentRuntime:
                     ensemble=rt.write_coordinates(a.out / 'ensemble.cif', atoms, identities, torch.cat(predictions)))
             total = len(seed_list(a.seeds))*a.samples_per_seed
             report = dict(status='inference_complete', target=target['name'], joint_step=self.joint_step,
+                condition_contract=model.condition_contract,
                 modality=target.get('modality','monomer'), n_chains=len(set(atoms.chain_id.tolist())),
                 n_ligand_atoms=int(features['is_ligand'].sum()) if 'is_ligand' in features else None,
                 checkpoint_sha256=self.hashes, input_identity=identities, n_atoms=len(atoms),

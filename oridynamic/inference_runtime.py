@@ -16,6 +16,7 @@ import torch
 
 from oridynamic.prepare import file_info
 from oridynamic.weights_io import load_weights, PROFILE
+from oridynamic.codec_condition import joint_model_class
 
 
 def save_json(path, value):
@@ -66,8 +67,7 @@ def amp(args):
 def load_parent(weights):
     saved = load_weights(weights["joint"], "joint")
     meta = saved["metadata"]
-    require(meta["condition_contract"] == "fixed_base_codec__online_lora_generator_refiner_v1",
-            "未知双上下文协议")
+    joint_model_class(meta["condition_contract"])  # 拒绝未知合同，不按文件名猜测。
     require(meta["codec_identity"]["coordinate_frame"] == "reference_canonical", "需要旧canonical codec")
     require(not meta["stageb_model_config"]["use_ref"], "首版只支持已验证的ref-off Joint；用户结构是decoder anchor")
     require(meta["online_template_execution_contract"] == "joint_online_native_null_template_v1",
@@ -294,7 +294,9 @@ def build_joint(args, saved, cfg, native, weights):
     generator = _build_denoiser(meta["stageb_backbone"], meta["stageb_model_config"])
     config = JointConfig.from_checkpoint(saved["joint_config"])
     state = saved["trainable_state"]
-    model = JointEnsembleModel(native, generator, codec, state["latent_mean"], state["latent_std"], config)
+    model_class = joint_model_class(meta["condition_contract"])
+    model = model_class(native, generator, codec, state["latent_mean"], state["latent_std"], config)
+    model.condition_contract = meta["condition_contract"]
     model.config = replace(config, activation_checkpoint=False, chunk_size=args.attention_chunk_size)
     require(set(state) == runner.checkpoint_state_names(model), "Joint参数/buffer集合不符")
     current = model.state_dict()
@@ -356,6 +358,7 @@ def run(args, paths, weights, native_input):
         with timer.stage('user_anchor_map'):
             user_anchor = map_structure(args.initial_structure, atoms, args.structure_chain)
     report = dict(schema="oridynamic_sequence_inference_v1", joint_step=int(saved["step"]),
+        condition_contract=saved["metadata"]["condition_contract"],
         checkpoint_sha256=hashes, runtime_root=str(args.runtime_root), n_atoms=len(atoms),
         n_tokens=len(features_cpu["token_index"]), msa_mode="local" if getattr(args, "msa_local_db", None) else "single_sequence" if args.single_sequence else "provided" if args.msa_a3m else "server",
         msa_search_report=file_info(args.out / "msa/search.json") if getattr(args, "msa_local_db", None) else None,
@@ -370,7 +373,7 @@ def run(args, paths, weights, native_input):
         input_identity=identities, torch_version=torch.__version__, sampler="sde_eta10",
         initial_structure=None if args.initial_structure is None else file_info(args.initial_structure),
         code_sha256={name:file_info(args.runtime_root/name)["sha256"] for name in (
-            "oridynamic/runtime_utils.py", "protenix/model/modules/joint_ensemble.py",
+            "oridynamic/runtime_utils.py", "oridynamic/codec_condition.py", "protenix/model/modules/joint_ensemble.py",
             "protenix/data/inference/infer_dataloader.py", "runner/msa_search.py")},
         entry_sha256={name:file_info(Path(__file__).parent/name)["sha256"]
                       for name in ("predict.py", "inference_runtime.py", "prepare.py", "local_msa.py", "weights_io.py", "inference_timing.py")})

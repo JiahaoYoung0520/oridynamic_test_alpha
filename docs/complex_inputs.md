@@ -51,6 +51,6 @@ Without a supplied structure, Protenix predicts the entire complex from its prot
 
 ## Validation scope
 
-This interface adds complex input handling and strict atom mapping to the existing model. It does not introduce a separately trained PL/PP model. The legacy Joint11500 model retains its original training provenance; PP use has out-of-distribution limitations.
+This interface adds complex input handling and strict atom mapping to the existing model. It does not introduce a separately trained PL/PP model. The default Joint200 checkpoint adapts Joint11500 on monomer and PL systems; PP was excluded from this adaptation and remains outside its training scope. See [model notes](model_card.md).
 
 The bundled five-system GPU smoke test has completed, including the PL and PP cases. This confirms execution and output generation for those inputs. Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.
