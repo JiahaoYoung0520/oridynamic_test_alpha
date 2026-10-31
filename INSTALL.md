@@ -2,7 +2,7 @@
 
 OriDynamic supports editable installation with `python -m pip install -e .` and installation from a built wheel. The public commands are `oridynamic sample`, `oridynamic msa`, and `oridynamic doctor`. See the [README](README.md) for a quick start.
 
-Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. Weights are hosted in the currently private [Hugging Face repository](https://huggingface.co/DanielYoung0520/oridynamic_v0). Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
+Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. Weights are hosted in the public [Hugging Face repository](https://huggingface.co/DanielYoung0520/oridynamic_v0). Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
 
 Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems. Keep other Protenix installations and research worktrees out of this environment's `PYTHONPATH`.
 
@@ -45,11 +45,10 @@ The default Torch backend does not require compiling fused LayerNorm. The option
 
 ## 2. Model weights and CCD
 
-Download the matching inference bundle from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). While the model repository is private, use an account with access:
+Download the matching inference bundle from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). The model repository is public; downloads do not require an invitation or login:
 
 ```bash
 python -m pip install -U huggingface_hub
-hf auth login
 hf download DanielYoung0520/oridynamic_v0 \
   protenix_base_default_v1.0.0.pt \
   all_atom_struct_vae_step0100000.pt \
