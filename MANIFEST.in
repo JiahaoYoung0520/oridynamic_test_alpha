@@ -1,0 +1,22 @@
+include README.md INSTALL.md PUBLIC_RELEASE.md SOURCES.md LICENSE-PTX
+include requirements-inference.txt pyproject.toml
+include configs/inference_defaults.json configs/base_diffusion_signature.json
+include configs/portable_paths.example.json configs/container_paths.example.json
+recursive-include oridynamic *.py
+recursive-include protenix *.py
+recursive-include runner *.py
+recursive-include docs *.md
+include runtime_sources.json
+include examples/monomer.fasta examples/batch.fasta examples/five_cases.json examples/README.md
+prune tests
+prune runs
+prune inputs
+prune weights
+prune assets
+prune data
+prune datasets
+prune .envs
+prune .venv
+prune build
+prune dist
+global-exclude __pycache__ *.pyc *.pt *.pth *.ckpt *.pdb *.cif *.npz *.npy *.xtc *.h5 *.hdf5 *.log

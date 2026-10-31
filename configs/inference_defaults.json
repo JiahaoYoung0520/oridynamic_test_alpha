@@ -1,0 +1,332 @@
+{
+  "c_atom": 128,
+  "c_atompair": 16,
+  "c_s": 384,
+  "c_s_inputs": 449,
+  "c_token": 384,
+  "c_z": 128,
+  "sigma_data": 16.0,
+  "model": {
+    "N_cycle": 10,
+    "N_model_seed": 1,
+    "condition_embedding_drop_rate": 0.0,
+    "confidence_embedding_drop_rate": 0.0,
+    "confidence_head": {
+      "blocks_per_ckpt": 3,
+      "c_s": 384,
+      "c_s_inputs": 449,
+      "c_z": 128,
+      "distance_bin_end": 52.0,
+      "distance_bin_start": 3.25,
+      "distance_bin_step": 1.25,
+      "hidden_scale_up": false,
+      "max_atoms_per_token": 24,
+      "n_blocks": 4,
+      "pairformer_dropout": 0.0,
+      "stop_gradient": true
+    },
+    "constraint_embedder": {
+      "c_constraint_atom_pair": 16,
+      "c_constraint_s": 449,
+      "c_constraint_z": 128,
+      "contact_atom_embedder": {
+        "c_z_input": 2,
+        "enable": false
+      },
+      "contact_embedder": {
+        "c_z_input": 2,
+        "enable": false
+      },
+      "initialize_method": "zero",
+      "pocket_embedder": {
+        "c_s_input": 3,
+        "c_z_input": 1,
+        "enable": false
+      },
+      "substructure_embedder": {
+        "architecture": "transformer",
+        "enable": false,
+        "hidden_dim": 128,
+        "n_classes": 4,
+        "n_layers": 1
+      }
+    },
+    "diffusion_module": {
+      "atom_decoder": {
+        "n_blocks": 3,
+        "n_heads": 4
+      },
+      "atom_encoder": {
+        "n_blocks": 3,
+        "n_heads": 4
+      },
+      "blocks_per_ckpt": 3,
+      "c_atom": 128,
+      "c_atompair": 16,
+      "c_s": 384,
+      "c_s_inputs": 449,
+      "c_token": 768,
+      "c_z": 128,
+      "frame_latent": {
+        "distance_bins": 64,
+        "distance_max": 30.0,
+        "distance_min": 2.0,
+        "enabled": false,
+        "hidden_dim": 128,
+        "latent_dim": 32
+      },
+      "sigma_data": 16.0,
+      "transformer": {
+        "n_blocks": 24,
+        "n_heads": 16
+      },
+      "use_fine_grained_checkpoint": true
+    },
+    "distogram_head": {
+      "c_z": 128,
+      "no_bins": 64
+    },
+    "input_embedder": {
+      "c_atom": 128,
+      "c_atompair": 16,
+      "c_token": 384
+    },
+    "msa_module": {
+      "blocks_per_ckpt": 3,
+      "c_m": 64,
+      "c_s_inputs": 449,
+      "c_z": 128,
+      "hidden_scale_up": false,
+      "msa_chunk_size": 2048,
+      "msa_dropout": 0.15,
+      "msa_max_size": 16384,
+      "n_blocks": 4,
+      "pair_dropout": 0.25
+    },
+    "pairformer": {
+      "blocks_per_ckpt": 3,
+      "c_s": 384,
+      "c_z": 128,
+      "dropout": 0.25,
+      "hidden_scale_up": false,
+      "n_blocks": 48,
+      "n_heads": 16
+    },
+    "relative_position_encoding": {
+      "c_z": 128,
+      "r_max": 32,
+      "s_max": 2
+    },
+    "template_embedder": {
+      "blocks_per_ckpt": 3,
+      "c": 64,
+      "c_z": 128,
+      "dropout": 0.25,
+      "hidden_scale_up": false,
+      "n_blocks": 2
+    }
+  },
+  "model_name": "protenix_base_default_v1.0.0",
+  "dtype": "bf16",
+  "enable_diffusion_shared_vars_cache": true,
+  "enable_efficient_fusion": true,
+  "enable_tf32": false,
+  "esm": {
+    "embedding_dim": 2560,
+    "embedding_dir": "./esm_embeddings/esm2-3b",
+    "enable": false,
+    "model_name": "esm2-3b",
+    "sequence_fpath": "./esm_embeddings/input_prot_sequences.csv"
+  },
+  "infer_setting": {
+    "chunk_size": 32,
+    "chunk_size_thresholds": {
+      "1024": -1,
+      "1536": 512,
+      "2048": 256,
+      "2560": 128
+    },
+    "dynamic_chunk_size": false,
+    "lddt_metrics_chunk_size": 1,
+    "lddt_metrics_sparse_enable": true,
+    "sample_diffusion_chunk_size": 5
+  },
+  "inference_noise_scheduler": {
+    "rho": 7,
+    "s_max": 160.0,
+    "s_min": 0.0004,
+    "sigma_data": 16.0
+  },
+  "sample_diffusion": {
+    "N_sample": 1,
+    "N_step": 200,
+    "disable_augment": null,
+    "gamma0": 0.8,
+    "gamma_min": 1.0,
+    "gamma_temp": null,
+    "guidance": {
+      "enable": false,
+      "log_last_step_energy": true,
+      "mc": {
+        "batch": 1,
+        "std": 0.0
+      },
+      "mu": 0.1,
+      "rho": 0.0,
+      "steps": {
+        "projection_inner": 10,
+        "projection_outer": 2,
+        "tfg_inner": 20,
+        "tfg_outer": 1
+      },
+      "terms": {
+        "ChiralAtomPotential": {
+          "buffer": 0.6155,
+          "enable_projection": true,
+          "interval": 1,
+          "weight": 0.0
+        },
+        "ExperimentalTorsionPotential": {
+          "interval": 1,
+          "weight": 0.0015
+        },
+        "InterchainBondPotential": {
+          "buffer": 2.0,
+          "interval": 1,
+          "weight": 0.15
+        },
+        "LinearBondPotential": {
+          "buffer": 0.08726646259,
+          "interval": 1,
+          "weight": 0.25
+        },
+        "PairwiseDistancePotential": {
+          "angle_buffer": 0.0,
+          "bond_buffer": 0.0,
+          "clash_buffer": 0.0,
+          "enable_projection": true,
+          "interval": 1,
+          "weight": 0.5
+        },
+        "PlanarImproperPotential": {
+          "interval": 1,
+          "weight": 0.12
+        },
+        "StereoBondPotential": {
+          "buffer": 0.5236,
+          "interval": 1,
+          "weight": 0.25
+        },
+        "VinaStericPotential": {
+          "buffer": 0.225,
+          "interval": 1,
+          "weight": 0.1
+        }
+      }
+    },
+    "noise_scale_lambda": 1.003,
+    "sigma_init": null,
+    "step_scale_eta": 1.5,
+    "temp_stage": "full"
+  },
+  "skip_amp": {
+    "confidence_head": false,
+    "sample_diffusion": true
+  },
+  "triangle_attention": "torch",
+  "triangle_multiplicative": "torch",
+  "use_msa": true,
+  "use_rna_msa": false,
+  "msa_pair_as_unpair": true,
+  "use_template": false,
+  "use_seeds_in_json": false,
+  "num_workers": 0,
+  "shard_id": 0,
+  "num_shards": 1,
+  "need_atom_confidence": false,
+  "sorted_by_ranking_score": true,
+  "metrics": {
+    "chain_ranker_keys": [
+      "chain_ptm",
+      "chain_plddt"
+    ],
+    "clash": {
+      "af3_clash_threshold": 1.1,
+      "vdw_clash_threshold": 0.75
+    },
+    "complex_ranker_keys": [
+      "plddt",
+      "gpde",
+      "ranking_score"
+    ],
+    "ensemble": {
+      "contact_threshold": 8.0,
+      "eps": 1e-06,
+      "n_gt_frames": 128
+    },
+    "interface_ranker_keys": [
+      "chain_pair_iptm",
+      "chain_pair_iptm_global",
+      "chain_pair_plddt"
+    ],
+    "lddt": {
+      "eps": 1e-06
+    }
+  },
+  "confidence_bins": {
+    "distogram": {
+      "eps": 1e-06,
+      "max_bin": 21.6875,
+      "min_bin": 2.3125,
+      "no_bins": 64
+    },
+    "plddt": {
+      "eps": 1e-06,
+      "max_bin": 1.0,
+      "min_bin": 0,
+      "no_bins": 50,
+      "normalize": true
+    },
+    "pae": {
+      "eps": 1e-06,
+      "max_bin": 32,
+      "min_bin": 0,
+      "no_bins": 64
+    },
+    "pde": {
+      "eps": 1e-06,
+      "max_bin": 32,
+      "min_bin": 0,
+      "no_bins": 64
+    }
+  },
+  "data": {
+    "msa": {
+      "min_size": {
+        "test": 1
+      },
+      "max_size": {
+        "test": 512
+      },
+      "sample_cutoff": {
+        "test": 512
+      }
+    },
+    "template": {
+      "enable_prot_template": false,
+      "fetch_remote": false,
+      "kalign_binary_path": null,
+      "obsolete_pdbs_path": null,
+      "prot_indexing_methods": [
+        "sequence"
+      ],
+      "prot_seq_or_filename_to_templatedir_jsons": null,
+      "prot_template_cache_dir": null,
+      "prot_template_mmcif_dir": null,
+      "prot_template_raw_paths": null,
+      "release_dates_path": null,
+      "template_dropout_rate": 0.0
+    },
+    "test_ref_pos_augment": true
+  }
+}

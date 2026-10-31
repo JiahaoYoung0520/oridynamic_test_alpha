@@ -1,0 +1,31 @@
+{
+  "atom_decoder": {
+    "n_blocks": 3,
+    "n_heads": 4
+  },
+  "atom_encoder": {
+    "n_blocks": 3,
+    "n_heads": 4
+  },
+  "blocks_per_ckpt": 1,
+  "c_atom": 128,
+  "c_atompair": 16,
+  "c_s": 384,
+  "c_s_inputs": 449,
+  "c_token": 768,
+  "c_z": 128,
+  "frame_latent": {
+    "distance_bins": 64,
+    "distance_max": 30.0,
+    "distance_min": 2.0,
+    "enabled": false,
+    "hidden_dim": 128,
+    "latent_dim": 32
+  },
+  "sigma_data": 16.0,
+  "transformer": {
+    "n_blocks": 24,
+    "n_heads": 16
+  },
+  "use_fine_grained_checkpoint": true
+}

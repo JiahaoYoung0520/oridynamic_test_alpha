@@ -1,0 +1,16 @@
+# Python 3.11；来自隔离CPU验收环境。Torch由安装命令单独选择CUDA轮子。
+torch==2.7.1
+numpy==2.4.1
+scipy==1.17.0
+pandas==2.3.1
+biotite==1.4.0
+rdkit==2025.9.3
+ml-collections==1.1.0
+networkx==3.3
+optree==0.17.0
+tqdm==4.67.1
+requests==2.32.3
+typing-extensions==4.15.0
+biopython==1.85
+fair-esm==2.0.0
+scikit-learn==1.7.1

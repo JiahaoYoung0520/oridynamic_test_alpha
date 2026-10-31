@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oridynamic-inference"
+version = "0.1.0a0"
+description = "OriDynamic：从蛋白序列和可选初始结构生成全原子系综，仅推理"
+readme = "README.md"
+license-files = ["LICENSE-PTX"]
+requires-python = ">=3.11,<3.12"
+dynamic = ["dependencies"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.11",
+  "Private :: Do Not Upload",
+]
+
+[project.scripts]
+oridynamic = "oridynamic.cli:main"
+
+[tool.setuptools]
+include-package-data = false
+py-modules = [
+  "batch_predict", "batch_runtime", "predict", "prepare", "local_msa",
+  "inference_runtime", "inference_timing", "runtime_utils", "weights_io",
+  "benchmark_inputs", "benchmark_batch", "compare_runs", "complex_inputs",
+]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements-inference.txt"]}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["oridynamic*", "protenix*", "configs", "runner"]
+exclude = ["tests*", "tools*", "runs*", "inputs*", "weights*", "assets*"]
+
+[tool.setuptools.package-data]
+configs = ["inference_defaults.json", "base_diffusion_signature.json", "portable_paths.example.json", "container_paths.example.json"]

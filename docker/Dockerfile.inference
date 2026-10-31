@@ -1,0 +1,22 @@
+# 仅发布目录；不克隆或安装其他OriDynamic/PTX仓库，不包含权重/CCD/MSA库。
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/oridynamic
+COPY requirements-inference.txt ./
+RUN pip install --no-cache-dir torch==2.7.1 --index-url https://download.pytorch.org/whl/cu126 \
+    && pip install --no-cache-dir -r requirements-inference.txt
+COPY predict.py benchmark_inputs.py benchmark_batch.py compare_runs.py inference_runtime.py inference_timing.py runtime_utils.py prepare.py local_msa.py weights_io.py ./
+COPY batch_predict.py batch_runtime.py complex_inputs.py ./
+COPY oridynamic ./oridynamic
+COPY docs ./docs
+COPY protenix ./protenix
+COPY runner ./runner
+COPY configs ./configs
+COPY examples ./examples
+COPY LICENSE-PTX README.md INSTALL.md PUBLIC_RELEASE.md SOURCES.md runtime_sources.json pyproject.toml MANIFEST.in ./
+RUN python -m pip install --no-cache-dir "setuptools>=77" wheel \
+    && python -m pip install --no-deps --no-build-isolation .
+ENV PYTHONDONTWRITEBYTECODE=1 LAYERNORM_TYPE=torch PROTENIX_DISABLE_FUSED_LN=1
+ENTRYPOINT ["python", "-B", "-u", "-m", "oridynamic"]
+CMD ["--help"]
