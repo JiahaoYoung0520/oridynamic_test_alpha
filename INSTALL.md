@@ -1,22 +1,16 @@
-# 安装与Docker运行
+# Installation and Docker
 
-当前支持`python -m pip install -e .`或构建wheel后安装，公开命令为
-`oridynamic sample`、`oridynamic msa`、`oridynamic doctor`；完整快速用法见[README](README.md)。
-Python3.11/CUDA12.6配方不随参考项目升级。依赖安装在独立环境，未发布PyPI或权重下载服务。
-用`ORIDYNAMIC_PATHS`和`ORIDYNAMIC_ASSETS`设置用户资源，或显式传`--paths/--assets-root`。
+OriDynamic supports editable installation with `python -m pip install -e .` and installation from a built wheel. The public commands are `oridynamic sample`, `oridynamic msa`, and `oridynamic doctor`. See the [README](README.md) for a quick start.
 
-只需要本目录代码、推理专用权重、公共CCD及MSA资源，不需要研究数据集或manifest。
-FASTA用于独立单体；PL/PP用[原生JSON入口](docs/complex_inputs.md)，一次可提交多种目标。
-不要安装另一个Protenix仓库或将其他worktree加入PYTHONPATH。
+Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI, and public checkpoint downloads have not yet been configured. Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
 
-## 常驻批量入口
+Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems. Keep other Protenix installations and research worktrees out of this environment's `PYTHONPATH`.
 
-依赖沿用本文件下方已验证环境，不照搬BioEmu2的Python/Torch版本。
-从本仓库执行`python -m oridynamic sample`，或安装后任意目录执行`oridynamic sample`；无需其他仓库或训练代码。
-已有MSA、本地搜索、可选结构用法见[批量推理](docs/batch_inference.md)；
-在线只提供[用户操作教程](docs/msa_online.md)。
+## Batch inference
 
-新构建的模型Docker默认使用统一入口；不改变已经存在的镜像或容器。批量运行：
+From this repository, use `python -m oridynamic sample`. After installation, `oridynamic sample` is available from other working directories. See the [batch guide](docs/batch_inference.md) for existing MSAs, local search, and optional initial structures, or the [online MSA guide](docs/msa_online.md) to prepare alignments separately.
+
+The supplied Docker recipe uses the same CLI. A batch with existing MSAs can be run as follows after building the image:
 
 ```bash
 mkdir batch_output
@@ -28,13 +22,11 @@ docker run --rm --network none --gpus device=0 \
   --fasta /input/sequences.fasta --msa-dir /input/msas --out /output/run
 ```
 
-模型镜像不内置大库或搜索器。可在独立搜索Docker先生成MSA；若使用一条命令自动本地搜索，
-推理环境中须能执行ColabFold/MMseqs2，并挂载已有数据库。新镜像构建仍待实际验收。
+The inference image does not include MSA databases or search tools. Generate MSAs with a separate search container, or install ColabFold/MMseqs2 in the inference environment and mount the databases for automatic local search. The new Docker build recipe has not yet been independently validated.
 
-## 1. 推理环境
+## 1. Inference environment
 
-参考验收环境：Linux x86_64、Python3.11、PyTorch2.7.1+cu126。
-下面安装到独立新环境，不升级正在训练的环境：
+The tested runtime uses Linux x86_64, Python 3.11, and PyTorch 2.7.1 with CUDA 12.6. Create a dedicated environment:
 
 ```bash
 conda create -y -p "$PWD/.envs/ptx" python=3.11
@@ -43,18 +35,17 @@ conda run -p "$PWD/.envs/ptx" python -m pip install -r requirements-inference.tx
 conda run -p "$PWD/.envs/ptx" python -m pip install --no-deps -e .
 ```
 
-或使用提供的模型Docker配方，仅COPY本目录源码，不克隆研究仓库：
+Alternatively, build the supplied inference image from this repository:
 
 ```bash
 docker build -f docker/Dockerfile.inference -t oridynamic-inference:local .
 ```
 
-默认Torch后端不编译fused LayerNorm；cuequivariance仅在已安装兼容扩展时显式启用。
-新镜像build/干净安装尚待实际验收，不能把现有PTX镜像验证当作新镜像验证。
+The default Torch backend does not require compiling fused LayerNorm. The optional cuequivariance backend requires compatible extensions and explicit selection. Successful inference in an existing environment does not validate a newly built Docker image.
 
-## 2. 权重与CCD
+## 2. Model weights and CCD
 
-资源目录：
+Prepare the following files:
 
 ```text
 weights/
@@ -67,17 +58,13 @@ assets/common/
   components.cif.rdkit_mol.pkl
 ```
 
-三份文件须为配套的推理专用导出包，不是同名旧训练checkpoint；程序严格核对schema、
-base/codec文件SHA、架构及Joint参数集合，不提供不受限pickle回退。
-权重只保留必要网络、推理配置及latent归一化，没有训练状态或研究数据。
+The three checkpoints must be the matching inference exports. Older training checkpoints with the same filenames are not accepted. The loader checks their schemas, base/codec hashes, architecture, and Joint parameter sets, and uses restricted deserialization. The exports retain the network parameters, inference configuration, and latent normalization statistics without training state or research data.
 
-公共CCD按[Protenix官方项目](https://github.com/bytedance/Protenix)对应版本准备，
-包括配套RDKit资源；仅使用可信的pickle。代码不自动下载。
-若资源不在默认位置，用`--paths my_paths.json --assets-root /path/to/assets`；
-路径JSON格式参考`configs/portable_paths.example.json`，相对路径基于JSON所在目录。
-权重和各公共资源的许可需单独确认，当前未上传公开权重或镜像。
+Prepare the matching CCD files, including the RDKit companion file, according to the [Protenix project](https://github.com/bytedance/Protenix). Use a trusted source for the pickle file. These resources are not downloaded automatically.
 
-## 3. 快速检查与GPU测试
+For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. Public checkpoint and container-image downloads are not yet provided. Resource redistribution terms are tracked separately from the source-code release.
+
+## 3. Checks and GPU smoke tests
 
 ```bash
 python -B -m unittest discover -s tests -v
@@ -88,7 +75,7 @@ CUDA_VISIBLE_DEVICES=0 python -B -u predict.py \
   --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out runs/quick_smoke_v1
 ```
 
-在新模型镜像里可以离线试跑（选择空闲GPU、创建新的输出目录）：
+After building the inference image, use an available GPU and a new output directory for a container smoke test:
 
 ```bash
 mkdir new_ensemble_output
@@ -100,16 +87,13 @@ docker run --rm --network none --gpus device=0 \
     --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out /output/run
 ```
 
-正式任务使用自己的FASTA/MSA挂载，不用query-only smoke代表质量。
-默认分块与CPU卸载降低显存压力，但尚无24/48GB卡长度保证。
+A five-target GPU smoke test covering three monomers, one PL complex, and one PP assembly has completed in the existing runtime, with two conformations per target. This validates the execution path for those inputs. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
 
-## 4. 本地MSA搜索：复用ColabFold/MMseqs2
+## 4. Local MSA search with ColabFold/MMseqs2
 
-MSA工具/数据库由用户自行准备，本项目不另行开发或提供常驻搜索服务。可以直接使用
-公开ColabFold/MMseqs2，或选择现有在线服务；已有A3M直接传`predict.py --msa-a3m`。
-下方Docker/薄适配均为可选方法，不要求必须经由我们的搜索包装器。
+Install the search tools and databases separately. OriDynamic calls the public ColabFold/MMseqs2 tools; it does not provide a persistent search service. Existing alignments can be supplied directly with `--msa-a3m`.
 
-建议将搜索器与推理环境隔离，避免依赖冲突。宿主机可使用搜索Docker；不要在容器里套Docker：
+A separate search environment helps avoid dependency conflicts. The host can launch a search container:
 
 ```bash
 docker pull ghcr.io/sokrypton/colabfold:1.6.3-cuda12
@@ -118,11 +102,9 @@ MSA_IMAGE=ghcr.io/sokrypton/colabfold:1.6.3-cuda12 MSA_DEVICE=gpu MSA_GPUS=0 \
     --msa-threads 16
 ```
 
-包装器不自动pull；源码/输入/库只读挂载、网络关闭、仅写新输出，记录实际image ID。
-CPU搜索改`MSA_DEVICE=cpu`。完成后用`--msa-a3m new_search_run/msa/unpaired.a3m`
-传入predict；此路径在模型记录中为provided，搜索记录在邻接的msa/search.json中。
+The wrapper expects the image to be present locally. It mounts the source, input, and database read-only, disables networking, writes to a new output directory, and records the image ID. Use `MSA_DEVICE=cpu` for CPU search. Pass the resulting alignment as `--msa-a3m new_search_run/msa/unpaired.a3m`. Search provenance is recorded in the adjacent `msa/search.json`.
 
-也提供`docker/Dockerfile.msa`，或在新的独立环境安装公开工具：
+A search-image recipe is also provided in `docker/Dockerfile.msa`. To install the tools in a separate Python environment:
 
 ```bash
 python3.11 -m venv .envs/msa
@@ -135,14 +117,11 @@ vendor/mmseqs18/mmseqs/bin/mmseqs version
 .envs/msa/bin/colabfold_search --help
 ```
 
-系统/架构兼容性以[MMseqs2官方说明](https://github.com/soedinglab/MMseqs2#installation)为准。
-一次准备公共数据库需大量磁盘/RAM，不是轻量操作；参照
-[ColabFold官方本地库说明](https://github.com/sokrypton/ColabFold#generating-msas-for-large-scale-structurecomplex-predictions)，
-不要对共享生产库原地重建或运行makepaddedseqdb。现有库可只读复用。
-默认前缀uniref30_2302_db、colabfold_envdb_202108_db，可分别通过
-`--msa-uniref-db`/`--msa-env-db`覆盖。db2是模板库，本入口不用。
+Consult the [MMseqs2 installation instructions](https://github.com/soedinglab/MMseqs2#installation) for platform compatibility. Database preparation requires substantial storage and memory; follow the [ColabFold database guide](https://github.com/sokrypton/ColabFold#generating-msas-for-large-scale-structurecomplex-predictions). Existing databases can be reused read-only. Do not rebuild a shared production database in place or run `makepaddedseqdb` on it.
 
-搜索预检（不搜索，不写文件）：
+The default database prefixes are `uniref30_2302_db` and `colabfold_envdb_202108_db`. Override them with `--msa-uniref-db` and `--msa-env-db`. The template database (`db2`) is not used by this entry point.
+
+Check the local search configuration without searching or writing files:
 
 ```bash
 python -B local_msa.py --fasta examples/monomer.fasta --out runs/msa_check \
@@ -151,17 +130,14 @@ python -B local_msa.py --fasta examples/monomer.fasta --out runs/msa_check \
   --msa-mmseqs "$PWD/vendor/mmseqs18/mmseqs/bin/mmseqs" --check
 ```
 
-一条命令完成本地搜索→模型的方式见README。默认CPU搜索/16线程，GPU须显式指定；
-搜索结束后才加载Torch模型，不启用常驻GPU server、不搜索模板，不修改数据库。
-数据库只核验dbtype标记，不伪称全库哈希；MSA首序列和全部比对列验收后才交给模型。
-查询失败不会静默改用在线服务或query-only。完整真实大库搜索仍待端到端验收。
+See the [README](README.md#msa-options) for search followed by inference in one command. Search defaults to CPU with 16 threads; GPU search must be selected explicitly. Search completes before model loading. The wrapper does not start a persistent GPU server, search templates, or modify databases.
 
-四种输入组合的可选计时命令见README第6节；MSA搜索时间与模型推理时间分开报告。
-本地和在线结果不能混为同一搜索性能基准，在线包括网络/排队和服务端缓存影响。
+Database checks inspect the `dbtype` markers, rather than hashing the complete databases. The query sequence and alignment columns are validated before inference. A failed search stops the run; there is no automatic fallback to an online service or query-only input. A full local-database search still requires end-to-end validation.
 
-## 5. 来源与边界
+The [batch guide](docs/batch_inference.md#outputs-and-timing) defines search and inference timing separately. Online search also includes networking, queueing, and service-side caching, so its timing should be reported separately from local search.
 
-复用公开Protenix网络/特征、ColabFold/MMseqs2 CLI；未复制其他人的私有搜索调度代码。
-保留LICENSE-PTX、SOURCES和源码指纹；各依赖、权重和公共数据库的许可分别遵守。
-代码公开不附带研究数据或训练器；正式发布文件见PUBLIC_RELEASE。
-用户自己的输入、搜索结果与生成输出只属于其新任务目录，不随代码交付。
+## 5. Sources and scope
+
+The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX), [source attribution](SOURCES.md), and source fingerprints. Dependencies, model weights, and public databases retain their respective terms.
+
+The code package excludes research datasets and training entry points. See [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md) for the release scope. User inputs, search results, and generated structures remain in each run's output directory.

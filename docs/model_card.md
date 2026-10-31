@@ -1,33 +1,30 @@
-# 推理模型说明与适用边界
+# Model notes and scope
 
-## 当前默认模型
+## Default model
 
-发布候选继续使用已经导出的三份`oridynamic_*_inference_v1`资源：PTX base v1.0.0、
-full/c32 AE100k、Joint11500。Joint中包含Stage-B参数，不需独立训练或单独初始化Stage-B。
-新做的预测anchor在线LoRA适配500步尚未替换这里的默认模型，也不能把训练checkpoint直接传入。
-推理包受限加载、严格核对基础权重SHA和架构；不包含optimizer、scheduler、训练随机状态或数据路径。
+The alpha release uses three matching inference exports: Protenix base v1.0.0, the full autoencoder with latent width 32 at step 100,000, and Joint11500. The Joint checkpoint contains the latent generator, so a separate Stage-B checkpoint is not required.
 
-## 原有科学协议不变
+An experimental 500-step adaptation for predicted anchors has not replaced these defaults. Training checkpoints cannot be supplied directly. Inference exports use restricted loading and strict checks of the base checkpoint hashes and architecture; they exclude optimizers, schedulers, training RNG state, and dataset paths.
 
-1. 原生序列/MSA/CCD特征；不给结构时，PTX默认4候选、SDE200/10cycle、原生ranking top1。
-2. 固定base上下文C0用于codec；在线LoRA上下文用于DiT和refiner，二者当前仍有区别。
-3. anchor定义canonical坐标系；AE解码输出位移，由调用者加回anchor。
-4. Stage-B Heun32产生潜变量；PTX refiner SDE20/sigma16输出精修结构。
-5. trunk/codec/DiT默认BF16；扩散遵守原生FP32边界，TF32关闭。
+## Sampling configuration
 
-本轮只改善打包、入口、输入路由和文档，未调整这些模型、噪声、坐标、采样或筛选设置。
-共享代码含原生化学参考`ref_pos`，不等于用户提供的全局anchor。
-不给初始结构时依然会预测anchor，不是新无anchor AE；显式DiT-reference仍关闭。
-无GT挑选、替换或修补输出，不从MD轨迹初始化。四个anchor候选不代表四个最终构象簇。
+1. Native sequence, MSA, and CCD features condition generation. Without a supplied structure, Protenix predicts four anchor candidates using 200 SDE steps and ten trunk cycles, then selects the top native ranking score.
+2. The codec uses frozen base context `C0`. The latent generator and refiner use the online LoRA context.
+3. The anchor defines the canonical coordinate frame. The autoencoder decoder returns displacements, which the caller adds to the anchor.
+4. Stage-B uses 32 Heun steps. The coordinate refiner uses 20 SDE steps with an initial noise scale of 16.
+5. The trunk, codec, and DiT default to BF16. Coordinate diffusion retains its native FP32 boundaries, and TF32 is disabled.
 
-## 能力与未验收事项
+Packaging and documentation changes preserve these model and sampling settings. Chemical reference features (`ref_pos`) are distinct from the supplied full-system anchor. If no initial structure is supplied, one is predicted. Explicit DiT reference conditioning remains disabled in this release.
 
-- 用户入口：FASTA单体或PTX JSON的单体/PL/PP；FASTA不是复合物的多链描述。
-- PL/PP复用原生featurizer、化学conformer、MSA与整复合物采样，不删除配体或拆成独立链。
-  CPU特征/映射/输出身份与完整GPU质量是不同验收项；新五案例的GPU结果尚未运行。
-  旧Joint11500的PP为域外应用，不声称经过四来源重新训练。格式见complex_inputs.md。
-- 小模型CPU回归不代表全尺寸GPU推理、真实MSA搜索或低显存通过。
-- 保守chunk与阶段卸载已实现；模型分片、多GPU协同、CPU-only生成、任意长度24GB运行未承诺。
-- 生成构象不是MD时间轨迹，不声称真实动力学或热力学basin占比。
-- CIF B-factor为占位，不应作为pLDDT/RMSF解释。
-- 当前没有对外质量保证或新性能结论。用户输入、公开权重及数据库均须有适当使用权限。
+Reference trajectories are not used to select, replace, or repair predictions. Four initial-structure candidates do not imply four final conformational basins.
+
+## Supported inputs and limitations
+
+- FASTA describes monomers; JSON describes monomer, PL, or PP systems. Multiple FASTA records are independent targets.
+- PL and PP inputs use native featurization and whole-complex sampling, retaining ligand atoms and relative partner geometry. See the [input format](complex_inputs.md).
+- The five-system GPU smoke test completed for three monomers, one PL complex, and one PP assembly. This establishes execution and output generation for these inputs, not benchmark quality.
+- The legacy Joint11500 PP application retains out-of-distribution limitations. This release does not claim a newly trained four-source model.
+- Chunking and stage-wise offloading are implemented. Model sharding, cooperative multi-GPU inference, CPU-only generation, and arbitrary-length operation on 24 GB GPUs have not been established.
+- Generated conformations form an unordered ensemble, not an MD time series. Physical kinetics or thermodynamic basin populations are not guaranteed.
+- CIF B-factors are placeholders and should not be interpreted as pLDDT or RMSF.
+- Full local MSA search, smaller-GPU limits, and task-specific quality require separate evaluation. Inputs, checkpoints, and databases retain their respective usage terms.

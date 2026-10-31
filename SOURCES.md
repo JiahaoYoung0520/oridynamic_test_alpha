@@ -1,44 +1,29 @@
-# 推理源码来源与裁剪范围
+# Source provenance and extraction scope
 
-2026-10-31：借鉴[BioEmu2](https://github.com/microsoft/bioemu2)和
-[RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina)的Python包/CLI、教程、资源与容器分层。
-新增打包与薄CLI调度，单文件输入复用已有batch目标路由，doctor不加载权重；模型/采样源码未改。
-没有复制两者源码、模型、安装版本或许可证。原始来源指纹保留，当前文件SHA以code_manifest.json为准。
+On 2026-10-31, the Python package, CLI, tutorials, and separation of source code, resources, and containers were organized with reference to [BioEmu2](https://github.com/microsoft/bioemu2) and [RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina). Their source code, models, installation versions, and licenses were not copied.
 
-新增`batch_predict.py`/`batch_runtime.py`/`oridynamic/__main__.py`为常驻批量调度：
-复用本目录`inference_runtime.py`、`local_msa.py`及`runtime_utils.py`；不导入研究仓库。
-顺序为全部base anchor/C0→一次Joint加载→全部系综，模型/采样算子未改。
-参考[BioEmu2发布说明](https://github.com/microsoft/bioemu2)中的模型复用和文档组织，
-没有复制BioEmu2源码、权重或自动采用其MIT授权。
+The batch entry points `batch_predict.py`, `batch_runtime.py`, and `oridynamic/__main__.py` reuse the local `inference_runtime.py`, `local_msa.py`, and `runtime_utils.py`. All base anchors and frozen contexts are prepared before Joint loading and ensemble generation. The entry points do not import the research repository. Original source fingerprints are retained; current release hashes are recorded in `code_manifest.json`.
 
-2026-10-30：从已核对的主项目快照机械摘取必要实现，保存在本目录；不在运行时
-调用主项目或training/analysis worktree。具体原文件SHA和发布文件SHA见
-`runtime_sources.json`；原路径只用于追溯，复制来源文件不等于声明重新授权。
+On 2026-10-30, the necessary inference implementations were extracted from the verified project snapshot. Original file hashes are recorded in `runtime_sources.json`. Source paths in that record provide provenance and are not runtime import paths. Attribution does not grant additional redistribution rights.
 
-| 发布位置 | 保留内容 | 不包含内容 |
-|---|---|---|
-| `protenix/model/protenix.py` | 原生网络与inference分支，保留严格权重键 | 训练loop/forward、训练噪声采样器 |
-| `protenix/model/modules/all_atom_struct_vae.py` | encode参考缓存、位移decode、严格权重键 | 训练forward、KL loss、训练初始化辅助 |
-| `protenix/model/modules/latent_dit.py` | 既有DiT网络和FM速度预测 | FM训练loop/目标/优化器 |
-| `protenix/model/modules/joint_ensemble.py` | 原generate/refine数学、Heun/SDE、双上下文 | replay/native loss、ensemble loss、训练forward |
-| `runtime_utils.py` | 从旧runner/scripts摘取严格加载、身份、分块、CIF写出 | 原main、MD读取、训练状态保存 |
-| `protenix/data/inference/`等 | 原生JSON/CCD/MSA特征依赖 | 训练dataset、mixture/轨迹适配器 |
-| `runner/msa_search.py`等 | 原生在线搜索依赖；本地搜索仍用`local_msa.py` | 训练runner、批量研究实验入口 |
-| `configs/inference_defaults.json` | 已验证smoke的推理数值、confidence分箱 | 数据集绝对路径、优化器/scheduler/loss权重 |
-| `benchmark_batch.py`、`compare_runs.py` | 通用已有MSA批量测速、同anchor结果差异检查 | 研究数据、搜索或新的模型实现 |
+| Release location | Retained | Excluded |
+| :--- | :--- | :--- |
+| `protenix/model/protenix.py` | Native network and inference path, preserving checkpoint keys | Training loops, training forward path, training noise sampler |
+| `protenix/model/modules/all_atom_struct_vae.py` | Reference encoding cache, displacement decoding, checkpoint keys | Training forward path, KL objective, training initialization helpers |
+| `protenix/model/modules/latent_dit.py` | Existing DiT network and flow velocity prediction | Flow-matching training loop, objective, and optimizer |
+| `protenix/model/modules/joint_ensemble.py` | Existing generation/refinement, Heun/SDE sampling, dual contexts | Replay/native objectives, ensemble losses, training forward path |
+| `runtime_utils.py` | Strict loading, atom identities, chunking, and CIF writing extracted from earlier runners | Earlier training entry points, MD loading, training-state saving |
+| `protenix/data/inference/` and feature dependencies | Native JSON, CCD, and MSA features | Training datasets, mixtures, and trajectory adapters |
+| `runner/msa_search.py` and dependencies | Legacy native online-search support; local search uses `local_msa.py` | Training runners and research batch experiments |
+| `configs/inference_defaults.json` | Inference settings and confidence bins | Dataset paths, optimizers, schedulers, and loss weights |
+| `benchmark_batch.py`, `compare_runs.py` | Generic timing with existing MSAs and comparisons using a common anchor | Research data and new search/model implementations |
 
-抽取保留必要参数、随机特征buffer和state_dict键，严格恢复base/codec/Joint。
-Joint权重自带DiT，不需要独立Stage-B初始化权重。`requires_grad`在加载时仅用于核验
-历史checkpoint保存集合，加载完成全模型冻结；`Joint.train(True)`和训练forward拒绝调用。
-这不是防止他人自行再训练的保护措施。
+The extraction preserves required parameters, random-feature buffers, and state-dict keys for strict base/codec/Joint loading. The Joint checkpoint includes the DiT. During loading, `requires_grad` is used to validate the historical checkpoint parameter groups; all parameters are frozen afterward. Training-mode entry points are rejected. These restrictions define the distributed inference interface, rather than preventing downstream users from developing their own training code.
 
-默认Torch LayerNorm与历史smoke一致；不携带fused LayerNorm编译链。
-原生底层算子可能仍含training状态、autograd或checkpoint通用实现，这是网络计算
-依赖，不是AE/Stage-B/Joint训练配方。公开入口接通单体/PL/PP的原生特征与整复合物采样；
-CPU特征验收不等于新PL/PP完整GPU质量已验收，边界见docs/model_card.md。
+The default Torch LayerNorm follows the tested runtime without a fused LayerNorm compilation dependency. Native low-level operators may retain general-purpose autograd, training flags, or checkpointing utilities; these are network dependencies, not the AE/Stage-B/Joint training recipe.
 
-本地搜索调用ColabFold/MMseqs2 CLI，没有复制同事批量调度代码；MSA数据库、CCD、
-权重另行提供且只读。PyTorch与各化学/搜索依赖按原许可安装。保留上游`LICENSE-PTX`
-和来源文件版权头；本地分支代码、权重、CCD/数据库的正式再分发许可仍需维护者确认。
+The public inputs support monomers, PL complexes, and PP assemblies with whole-complex sampling. Execution checks and task-specific quality evaluations are distinct; see the [model notes](docs/model_card.md).
 
-不读取GT/MD、不按评价结果选择anchor。自动top1、用户结构和历史多anchor实验应分别记录。
+Local MSA search calls the public ColabFold/MMseqs2 CLI. It does not copy private search orchestration code. Model weights, CCD resources, and MSA databases are supplied separately. The upstream [LICENSE-PTX](LICENSE-PTX) and source copyright headers are retained. Local additions, weights, and databases require their own applicable redistribution terms.
+
+Predictions do not read ground-truth structures or MD trajectories for selection. Default predicted anchors, user-provided structures, and historical multi-anchor experiments should be documented separately when comparing results.

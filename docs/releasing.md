@@ -1,34 +1,29 @@
-# 面向Git仓库的发布检查
+# Source release guide
 
-## 借鉴的形式
+## Repository organization
 
-[BioEmu2](https://github.com/microsoft/bioemu2)使用可安装Python包、统一命令、
-模型资源与代码分离及分层教程；[RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina)
-另提供明确的安装、配置示例、容器和工作流入口。本项目借鉴交付方式，不移植训练或新采样算法。
-
-## 当前目录结构
+The package and documentation organization was informed by [BioEmu2](https://github.com/microsoft/bioemu2) and [RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina). This concerns installation, CLI organization, resources, and containers; their training and sampling implementations are not included.
 
 ```text
-pyproject.toml               # pip安装、oridynamic命令、Python/依赖版本
-oridynamic/                 # sample / msa / doctor公开入口
-batch_predict.py            # 已验收常驻两阶段调度；为兼容旧入口暂不搬动
+pyproject.toml              # Package installation, CLI, Python and dependency versions
+oridynamic/                # Public sample / msa / doctor entry points
+batch_predict.py           # Batch orchestration with models retained across targets
 batch_runtime.py
-protenix/ runner/ configs/  # 本包内裁剪的必要PTX推理依赖，无训练入口
-examples/                   # 通用单目标/批量FASTA
-docs/                       # 输入、MSA、模型边界和发布说明
-docker/                     # 模型/MSA分开的镜像配方
-tests/ .github/workflows/   # CPU接口回归；不自动启动GPU或下载权重
-tools/release_bundle.py     # 白名单、SHA检查与干净导出
+protenix/ runner/ configs/ # Required inference dependencies; no training entry points
+examples/                  # Single-target, batch, and complex inputs
+docs/                      # Input, MSA, model, and release guides
+docker/                    # Separate inference and MSA-search recipes
+tests/ .github/workflows/  # CPU checks; no automatic GPU runs or checkpoint downloads
+tools/release_bundle.py    # Source allowlist, hash checks, and clean export
 ```
 
-保留flat模块以避免重写已验证的原生imports和权重键；这是实际可安装包，不依赖研究仓库的PYTHONPATH。
-请使用专用环境，避免同时安装另一份Protenix或其他同名runner/configs包。
-`complex_inputs.py`为新增PTX JSON薄适配；examples还含3单体/1PL/1PP真实序列和公共CCD标识，
-均经明确白名单纳入Git/源码包，不含MD/GT坐标或内部路径。完整复合物输入说明见complex_inputs.md。
+The flat modules retain existing imports and checkpoint keys. The package does not depend on the research repository's `PYTHONPATH`. Use a dedicated environment to avoid conflicting Protenix, `runner`, or `configs` packages.
 
-## 导出
+`complex_inputs.py` adapts the native Protenix JSON format. The allowlisted examples contain three monomers, one PL complex, and one PP assembly using sequences and a public CCD identifier. They include no MD coordinates or internal dataset paths. See the [complex-input guide](complex_inputs.md).
 
-维护者审核代码与许可后，更新代码清单，再导出到一个不存在的新目录：
+## Exporting a source bundle
+
+After reviewing the intended source changes, refresh the manifest and export into a new directory:
 
 ```bash
 python -B tools/release_bundle.py refresh
@@ -36,20 +31,22 @@ python -B tools/release_bundle.py check
 python -B tools/release_bundle.py export --out /absolute/path/new_repo
 ```
 
-只复制白名单文件，不复制weights/assets/inputs/runs/cache、PLAN、内部数据、训练代码或Git历史。
-输入源目录含有运行产物也不会整体带走；拒绝软链接和覆盖已有输出。
-refresh只是重建维护者清单，不能证明许可证、数值正确性或代码安全；提交前仍需审查。
-不要直接git add整个原运行目录。导出的源码目录可另行git init，远端URL与发布权限由维护者决定。
+Only allowlisted files are copied. Weights, assets, inputs, run outputs, caches, internal plans, research data, training code, and Git history are excluded. The exporter rejects symbolic links and existing output directories.
 
-## 发布前必须完成
+`refresh` updates the maintainer's manifest; it is not an independent review of numerical behavior or licensing. Review the source changes before refreshing it. Stage only the intended release files when updating the Git repository.
 
-- [ ] 确认本地新增代码的许可证、第三方通知和权重/CCD/MSA库再分发条件。不能照搬参考仓库的MIT/BSD授权。
-- [ ] 准备获授权的权重托管与SHA清单、公开下载说明；当前只支持用户提供本地资源。
-- [ ] 配置真实仓库URL、维护者信息及论文引用；没有填入虚构作者或链接。
-- [ ] 干净安装/模型Docker build、常驻批量GPU烟测、正常MSA输入与用户anchor路径、真实本地搜索。
-- [ ] 小显存/长序列运行边界；只有完成硬件实测后才公布具体保证。
-- [ ] 指定另一模型独立审计；GitHub CI首次运行及实际权重验收。
+## Validation and publication status
 
-CPU回归和离线wheel安装由本轮本地检查验证；不代表以上GPU/搜索验收。
-pyproject暂有`Private :: Do Not Upload`以防误发PyPI；正式许可审核后由维护者移除。
-新Docker入口统一为oridynamic；需要旧单目标脚本时显式覆盖entrypoint，不能混用两套参数。
+- [x] The alpha source snapshot has been pushed to [GitHub](https://github.com/JiahaoYoung0520/oridynamic_test_alpha).
+- [x] Local CPU regression and offline wheel-installation checks have been recorded.
+- [x] The five-target GPU smoke test completed with matching inference weights: three monomers, one PL complex, and one PP assembly, with two final conformations each.
+- [ ] Complete the licensing decisions for local additions and the redistribution conditions for weights, CCD resources, and MSA databases. Upstream notices remain in place.
+- [ ] Configure weight hosting, public download instructions, and the matching hash manifest.
+- [ ] Add the final maintainer and paper-citation information.
+- [ ] Independently validate the new inference Docker build, normal MSA inputs, supplied-structure paths, and full local-database search.
+- [ ] Establish sequence-length and memory limits on smaller GPUs before publishing hardware guarantees.
+- [ ] Confirm the remote GitHub CI result and any separately requested independent review.
+
+The completed smoke test establishes execution for its five inputs, not benchmark quality or the remaining deployment checks. The package retains `Private :: Do Not Upload` to prevent accidental PyPI publication until that distribution is ready.
+
+The Docker entry point is `oridynamic`. To use a legacy script, override the entry point explicitly and follow that script's parameter interface.

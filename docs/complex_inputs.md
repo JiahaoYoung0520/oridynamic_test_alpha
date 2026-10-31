@@ -1,11 +1,10 @@
-# 单体、PL与PP：同一原生PTX特征入口
+# Monomer, protein–ligand, and protein–protein inputs
 
-使用`oridynamic sample --input-json complex.json ...`。JSON为PTX的任务数组，
-`sequences`中每个对象是一个entity，支持`proteinChain`与`ligand`。
-同一个任务内的全部链共同进入trunk/anchor预测/Joint/CIF，不拆成多个单体。
-FASTA的多记录仍表示多个独立单体，不能用多FASTA假装PP。
+Use `oridynamic sample --input-json complex.json ...` with a Protenix task array. Each entry in `sequences` describes an entity using `proteinChain` or `ligand`. All chains and ligands within one task are processed together through structure prediction, ensemble generation, and CIF export.
 
-## 输入格式
+Multiple FASTA entries describe independent monomers. Use JSON to describe interacting chains in one complex.
+
+## Input format
 
 ```json
 [
@@ -20,43 +19,38 @@ FASTA的多记录仍表示多个独立单体，不能用多FASTA假装PP。
 ]
 ```
 
-这里的短序列只演示格式；可运行的真实序列见`examples/five_cases.json`。
-每个entity显式给出唯一链ID列表；同源多拷贝可用`id: ["A", "B"], count: 2`。
-相对MSA、配体文件和anchor路径基于输入JSON，不基于启动目录。
-仅支持标准20种氨基酸；不支持的修饰、核酸、离子、共价跨entity约束明确拒绝，不能静默忽略。
+These short sequences illustrate the format. The [five example systems](../examples/five_cases.json) contain real input sequences. Specify a unique list of chain IDs for each entity; multiple copies of the same entity can use `id: ["A", "B"], count: 2`.
 
-## MSA与化学参考
+Relative MSA, ligand-file, and initial-structure paths are resolved from the input JSON directory. Protein sequences must use the 20 standard amino acids. Unsupported modifications, nucleic acids, ions, and covalent constraints between entities are rejected explicitly.
 
-- 每个蛋白entity可提供`unpairedMsaPath`，以及可选`pairedMsaPath`。二者分别验证query。
-- 未给unpaired MSA时，用`--msa-local-db`逐entity搜索；同一entity的多个拷贝共用MSA。
-- 本地搜索只产生逐链unpaired结果；不伪造paired MSA。提供paired A3M时直接交给原生PTX配对逻辑。
-- `--single-sequence`只允许显式query-only烟测，不是正常输入质量的替代。默认不会隐式联网。
-- 配体`CCD_75G`等直接查本地公共CCD；SMILES和`FILE_relative/path.mol`也使用PTX原生解析与conformer。
-  本项目不另造CCD检索器、不从MD复制配体构象、不依据GT选化学组分。
-- 化学参考`ref_pos`和整复合物decoder anchor是不同输入。化学图、原子名、元素、电荷、ref_mask、
-  bond及atom-to-token来自原生featurizer，不因为加入Joint而删去配体。
+## MSAs and chemical reference features
 
-## 用户提供初始结构
+- Each protein entity can provide `unpairedMsaPath` and an optional `pairedMsaPath`. The query sequence is validated for each alignment.
+- When an unpaired MSA is absent, `--msa-local-db` searches separately for each entity. Copies of the same entity share an MSA.
+- Local search produces unpaired alignments. Supplied paired A3Ms are passed to the native Protenix pairing logic.
+- `--single-sequence` explicitly selects query-only input for smoke tests. The batch entry point does not contact an online MSA service automatically.
+- Ligands such as `CCD_75G` are resolved against the local CCD resources. SMILES and `FILE_relative/path.mol` inputs use native Protenix parsing and conformer generation.
+- Chemical reference features (`ref_pos`) and the full-complex decoder anchor have different roles. The native featurizer supplies chemical graphs, atom names, elements, charges, validity masks, bonds, and atom-to-token mappings; ligand atoms remain part of ensemble generation.
 
-任务对象可增加：
+## Optional initial structure
+
+Add these fields to the task object:
 
 ```json
 "initial_structure": "anchors/full_complex.cif",
 "structure_chains": {"A": "X", "B": "Y", "L": "Z"}
 ```
 
-映射左侧为输入JSON链ID，右侧为anchor的author链ID。不提供映射时要求同名链。
-anchor必须包含所有输入链和全部所需重原子；逐链残基顺序/组分名、原子名和元素严格对应。
-CCD配体必须使用同CCD原子名；SMILES/MOL的PTX命名可能不同，不自动猜测同构映射或补原子。
-可将本入口生成的`anchor.cif`原样回灌。PP同源链不自动置换；PL不单独拟合/居中配体。
-映射完成后统一建立全复合物canonical坐标系，再复用原Joint计算。
+Mapping keys are input JSON chain IDs; values are author chain IDs in the initial structure. Without this mapping, matching chain IDs are required.
 
-不提供初始结构时，PTX从完整蛋白/配体输入共同预测整个复合物，按原生ranking_score选anchor。
-最终`anchor.cif`、`proposals.cif`和`ensemble.cif`包含全部链和配体；会做身份/坐标回读核验。
+The structure must contain all input chains and the required heavy atoms. Residue order, component names, atom names, and elements are matched explicitly. CCD ligands must use the corresponding CCD atom names. SMILES/MOL atom names follow the Protenix conventions; the loader does not infer an isomorphism or add missing atoms.
 
-## 验证边界
+An `anchor.cif` produced by this entry point can be reused directly. Homomeric chains are not automatically permuted, and ligands are not aligned or centered independently. After mapping, one canonical frame is established for the complete complex.
 
-新增的是复合物输入接线与严格映射，不是重新训练或提高PL/PP质量的新模型。
-旧Joint11500主要在三来源训练，PP仍有域外泛化限制。
-CPU原生特征与回归结果见本轮维护记录；完整五案例GPU生成与真实本地MSA搜索须另行运行。
-不能用CPU检查宣称配体结合位姿、PP界面或动态分布已经验证。
+Without a supplied structure, Protenix predicts the entire complex from its protein and ligand inputs. The native `ranking_score` selects the anchor. The resulting `anchor.cif`, `proposals.cif`, and `ensemble.cif` include every chain and ligand, with identity and coordinate checks on readback.
+
+## Validation scope
+
+This interface adds complex input handling and strict atom mapping to the existing model. It does not introduce a separately trained PL/PP model. The legacy Joint11500 model retains its original training provenance; PP use has out-of-distribution limitations.
+
+The bundled five-system GPU smoke test has completed, including the PL and PP cases. This confirms execution and output generation for those inputs. Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.

@@ -1,25 +1,22 @@
-# 五个小用例：3个单体、1个PL、1个PP
+# Five example systems
 
-输入在[five_cases.json](five_cases.json)，只包含序列、链组成及一个公共CCD标识。
-不包含MD轨迹、frame0、GT坐标、内部MSA/缓存或研究绝对路径。
+[five_cases.json](five_cases.json) contains three protein monomers, one protein–ligand complex, and one protein–protein assembly. The input consists of sequences, chain composition, and a public CCD identifier. It contains no trajectories, reference coordinates, precomputed MSAs, caches, or internal research paths.
 
-| 用例 | 类型 | 选择依据 |
-|---|---|---|
-| [6jv8_A](https://www.rcsb.org/structure/6JV8) | 单体 | 较短；历史生成的逐体系RMSF形状相关较好 |
-| [7n0j_E](https://www.rcsb.org/structure/7N0J) | 单体 | 较短；历史生成的逐体系RMSF形状相关较好 |
-| [6tly_A](https://www.rcsb.org/structure/6TLY) | 单体 | 较短；历史幅度比更接近1，避免只按相关性选例 |
-| [5T3N](https://www.rcsb.org/structure/5T3N) | PL | 153 aa蛋白＋CCD_75G；历史配体位姿误差较小 |
-| A00C3（DynaPPI公开体系编号） | PP | 两条蛋白链，总317 aa；历史PP中较小且RMSF形状相关较好 |
+| Case | System | Selection rationale |
+| :--- | :--- | :--- |
+| [6jv8_A](https://www.rcsb.org/structure/6JV8) | Monomer | Small system with favorable historical RMSF-profile correlation |
+| [7n0j_E](https://www.rcsb.org/structure/7N0J) | Monomer | Small system with favorable historical RMSF-profile correlation |
+| [6tly_A](https://www.rcsb.org/structure/6TLY) | Monomer | Small system with a historical fluctuation-amplitude ratio closer to one |
+| [5T3N](https://www.rcsb.org/structure/5T3N) | Protein–ligand | A 153-residue protein with `CCD_75G`; selected for lower historical ligand-pose error |
+| A00C3, a public DynaPPI system | Protein–protein | Two chains totaling 317 residues; a smaller historical PP case with favorable RMSF-profile correlation |
 
-这些是**挑选的演示案例，不是随机测试集或性能基准**。序列采用之前处理的体系区段，
-不一定等于PDB完整SEQRES，标签/末端也保留；不能仅按PDB编号替换成不同的全长序列。
-5T3N改用公共CCD_75G化学参考，不能把旧MD化学特征下的成绩当作本例复现结果。
-历史筛选参考的online-codec/32候选配置不同于release固定C0/4候选默认；新完整GPU输出尚待验收。
-PP例是公共DynaPPI的序列组成，不要求用户下载DynaPPI轨迹。
+These are selected demonstrations, not a random test set or an unbiased benchmark. The sequences follow the previously processed system segments, including retained tags and termini, and may differ from complete PDB SEQRES sequences. Preserve the supplied sequences when running these examples.
 
-## 正常推理（本地MSA）
+The 5T3N example uses public `CCD_75G` chemical features. Historical scores obtained with MD-derived chemical features are not reproduced merely by running this input. Historical selection also used an online-codec/32-candidate configuration, while this release uses fixed codec context and four anchor candidates. The five-system release smoke test has now completed; it validates execution, not those historical quality scores. The PP input requires no DynaPPI trajectory downloads.
 
-先按INSTALL配置`ORIDYNAMIC_PATHS`、`ORIDYNAMIC_ASSETS`及本地搜索器/公共数据库：
+## Inference with local MSAs
+
+Follow [INSTALL.md](../INSTALL.md) to configure `ORIDYNAMIC_PATHS`, `ORIDYNAMIC_ASSETS`, the search tools, and public databases:
 
 ```bash
 oridynamic sample --input-json examples/five_cases.json \
@@ -28,12 +25,11 @@ oridynamic sample --input-json examples/five_cases.json \
   --out runs/five_cases
 ```
 
-已有MSA时，在每个`proteinChain`中填写`unpairedMsaPath`，去掉`--msa-local-db`。
-每体系4个最终构象，共20个；默认4个PTX候选选一个anchor，候选数不计入最终ensemble样本数。
+For existing MSAs, set `unpairedMsaPath` in each `proteinChain` object and omit `--msa-local-db`. This example generates four final conformations per system, or 20 in total. By default, four initial-structure candidates are generated and one is selected as the anchor. Those candidates are separate from the final ensemble sample count.
 
-## 离线快速烟测
+## Offline smoke test
 
-没有搜索库且不能联网时，可显式使用query-only：
+With the required weights and CCD resources already installed, query-only input can be selected explicitly for a small test without MSA search:
 
 ```bash
 oridynamic sample --input-json examples/five_cases.json --single-sequence \
@@ -41,6 +37,6 @@ oridynamic sample --input-json examples/five_cases.json --single-sequence \
   --out runs/five_cases_smoke
 ```
 
-这是接口/完整输出烟测，不代表正常MSA条件下的质量。可加`--plan`只读检查；
-该命令不做模型前向，也不能替代CCD真实特征检查。推理请使用空闲GPU，不占用在跑训练的卡。
-给定anchor的PL/PP格式及逐链MSA说明见[复合物输入](../docs/complex_inputs.md)。
+This five-target configuration has completed on an NVIDIA H200 with the matching inference weights, producing two final conformations per target. Output files were present and the final, proposal, and latent tensors were finite. This is an execution smoke test, not an assessment under normal MSA conditions.
+
+Add `--plan` for a read-only input and resource-path check. It performs no model forward pass and does not replace real CCD featurization. Use an available GPU and a new output directory. See the [complex-input guide](../docs/complex_inputs.md) for per-chain MSAs and optional initial structures.

@@ -1,26 +1,22 @@
-# 用户自行准备在线MSA
+# Preparing MSAs with an online service
 
-新批量入口不请求远端MSA服务。在线搜索是用户独立操作，会把序列发送给第三方；
-敏感序列应使用本地数据库。机器不能联网时不要运行以下步骤。
+The batch entry point consumes existing MSAs or searches a local database. Online MSA preparation is a separate step that sends sequences to a third-party service. Use local search for confidential sequences.
 
-按[ColabFold官方说明](https://github.com/sokrypton/ColabFold#generating-msas-for-small-scale-local-structurecomplex-predictions-using-the-msa-server)
-安装兼容的ColabFold环境，在可联网机器执行：
+Follow the [ColabFold instructions](https://github.com/sokrypton/ColabFold#generating-msas-for-small-scale-local-structurecomplex-predictions-using-the-msa-server) to install a compatible environment, then run on a machine with internet access:
 
 ```bash
 colabfold_batch sequences.fasta online_msas --msa-only
 ```
 
-这里只取得MSA，不调用OriDynamic、不预测本项目anchor。遵守服务条款与限流，
-不要对公共服务运行大规模并行请求。也可使用官方Colab界面取得A3M。
+This command generates MSAs only. It does not invoke OriDynamic or predict an initial structure. Follow the service's usage terms and rate limits. The official Colab interface can also be used to obtain A3M files.
 
-把产生的A3M复制到推理机器，核对每条query和FASTA完全一致。若输出文件名不是FASTA
-标题首词，使用`request.json`逐项明确`msa_a3m`路径，而不是猜测编号。
-本地推理：
+Copy the alignments to the inference machine and check that each query sequence matches its FASTA input exactly. If alignment filenames differ from the first words of the FASTA headers, specify their `msa_a3m` paths explicitly in a [request manifest](batch_inference.md#inputs-and-execution).
+
+Run inference locally:
 
 ```bash
 python -B -u -m oridynamic --manifest request.json \
   --seeds 0,1 --samples-per-seed 8 --out runs/from_online_msas_v1
 ```
 
-在线准备时间不计入本地推理计时。当前目录保留旧`predict.py`的在线兼容入口以免影响
-既有任务；推荐新入口仅支持已有MSA、本地搜索和显式query-only，不接受在线搜索开关。
+Report online preparation time separately from local inference time. The legacy `predict.py` entry point retains its earlier online-search compatibility, while the recommended batch entry point accepts existing MSAs, local search, or explicit query-only smoke tests.
