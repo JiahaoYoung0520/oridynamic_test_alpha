@@ -68,10 +68,10 @@ def run_template_search(msa_for_template_search_dir: Optional[str]=None, msa_for
         _SEQRES_DATABASE_PATH = _HOME_DIR / 'search_database' / 'pdb_seqres_2022_09_28.fasta'
         seqres_database_path = _SEQRES_DATABASE_PATH.as_posix()
     if not os.path.exists(seqres_database_path):
-        from runner.inference import download_from_url
+        from runner.download import download_from_url
         os.makedirs(os.path.dirname(seqres_database_path), exist_ok=True)
         logger.info(f'Downloading template search database from {TEMPLATE_SEARCH_DATABASE_URL} to {seqres_database_path}')
-        download_from_url(TEMPLATE_SEARCH_DATABASE_URL, seqres_database_path, check_weight=False)
+        download_from_url(TEMPLATE_SEARCH_DATABASE_URL, seqres_database_path)
     logger.info('Template search start!')
     template_start_time = time.time()
     hmmsearch_config = HmmsearchConfig(hmmsearch_binary_path=hmmsearch_binary_path, hmmbuild_binary_path=hmmbuild_binary_path, filter_f1=0.1, filter_f2=0.1, filter_f3=0.1, e_value=100, inc_e=100, dom_e=100, incdom_e=100, alphabet='amino')

@@ -45,16 +45,21 @@ The default Torch backend does not require compiling fused LayerNorm. The option
 
 ## 2. Model weights and CCD
 
-Download the matching inference bundle from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). The model repository is public; downloads do not require an invitation or login:
+Download the OriDynamic autoencoder and joint weights from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0), then obtain **Protenix base v1.0.0** from the official upstream URL. Our Hugging Face repository distributes only the two OriDynamic checkpoints; no login or invitation is required.
 
 ```bash
 python -m pip install -U huggingface_hub
 hf download DanielYoung0520/oridynamic_v0 \
-  protenix_base_default_v1.0.0.pt \
-  all_atom_struct_vae_step0100000.pt \
-  joint_step0000200.pt \
-  weights_manifest.json \
+  ae.ckpt oridynamic.ckpt weights_manifest.json \
   --local-dir weights
+
+# Obtain the exact Protenix v1 base from its official distribution.
+curl -fL --retry 3 \
+  https://protenix.tos-cn-beijing.volces.com/checkpoint/protenix_base_default_v1.0.0.pt \
+  -o weights/protenix_base_default_v1.0.0.pt
+printf '%s  %s\n' \
+  '2b7d5a8b30494514fc47fd2271a16260528cdba170ba09cc112fdecd8f85ec04' \
+  weights/protenix_base_default_v1.0.0.pt | sha256sum -c -
 ```
 
 Run this command from the code repository root. The expected layout is:
@@ -62,19 +67,21 @@ Run this command from the code repository root. The expected layout is:
 ```text
 weights/
   protenix_base_default_v1.0.0.pt
-  all_atom_struct_vae_step0100000.pt
-  joint_step0000200.pt
+  ae.ckpt
+  oridynamic.ckpt
   weights_manifest.json
 assets/common/
   components.cif
   components.cif.rdkit_mol.pkl
 ```
 
-The three checkpoints must be the matching inference exports. Older training checkpoints with the same filenames are not accepted. The loader checks their schemas, base/codec hashes, architecture, and Joint parameter sets, and uses restricted deserialization. The exports retain the network parameters, inference configuration, and latent normalization statistics without training state or research data.
+Use the exact official Protenix v1.0.0 file and the matching OriDynamic exports. The official file is accepted only with the pinned SHA-256 above; a same-named file from another model version is not interchangeable. The loader checks export schemas, base/codec compatibility, architecture, and Joint parameter sets using restricted deserialization. OriDynamic exports retain model parameters, inference configuration, and latent normalization statistics without optimizer state or research data.
+
+Earlier installations using the verified OriDynamic-wrapped Protenix v1 base remain compatible. For a fresh install, use the official file above. Renaming an arbitrary checkpoint does not make it compatible.
 
 Prepare the matching CCD files, including the RDKit companion file, according to the [Protenix project](https://github.com/bytedance/Protenix). Use a trusted source for the pickle file. These resources are not downloaded automatically.
 
-For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains weights only; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
+For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains OriDynamic weights and documentation; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
 
 ## 3. Checks and GPU smoke tests
 
@@ -99,7 +106,7 @@ docker run --rm --network none --gpus device=0 \
     --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out /output/run
 ```
 
-The earlier Joint11500 release completed a five-target GPU smoke test covering three monomers, one PL complex, and one PP assembly in the existing runtime, with two conformations per target. That run predates Joint200; validation for the current checkpoint is documented in [model notes](docs/model_card.md). This validates the execution path for those inputs. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
+An author-supplied H20 deployment report dated 2026-11-01 records successful execution with the current model on the five bundled MSA examples (three monomers, one PL complex, one PP assembly), producing ten final conformations. It used an existing dependency image, not a fresh build of the public Dockerfile. See [model notes](docs/model_card.md) for the evidence and its limits. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
 
 ## 4. Local MSA search with ColabFold/MMseqs2
 
@@ -142,7 +149,7 @@ oridynamic msa --fasta examples/monomer.fasta --out runs/msa_check \
   --msa-mmseqs "$PWD/vendor/mmseqs18/mmseqs/bin/mmseqs" --check
 ```
 
-See the [README](README.md#msa-options) for search followed by inference in one command. Search defaults to CPU with 16 threads; GPU search must be selected explicitly. Search completes before model loading. The wrapper does not start a persistent GPU server, search templates, or modify databases.
+See the [README](README.md#msa-options) for search followed by inference in one command. Search defaults to CPU with 16 threads; GPU search must be selected explicitly with `--msa-device gpu` (the default is `--msa-device cpu`). Search completes before model loading. The wrapper does not start a persistent GPU server, search templates, or modify databases.
 
 Database checks inspect the `dbtype` markers, rather than hashing the complete databases. The query sequence and alignment columns are validated before inference. A failed search stops the run; there is no automatic fallback to an online service or query-only input. A full local-database search still requires end-to-end validation.
 

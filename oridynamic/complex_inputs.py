@@ -30,9 +30,12 @@ def native_sample(target):
 
 def resolved_file(value, base):
     if not isinstance(value, str) or not value:
-        raise ValueError('文件路径须为非空字符串')
+        raise ValueError('File path must be a nonempty string')
     p = Path(value)
-    return (p if p.is_absolute() else base / p).resolve(strict=True)
+    resolved = (p if p.is_absolute() else base / p).resolve()
+    if not resolved.is_file():
+        raise ValueError(f"Input file not found: {resolved}. Relative MSA, ligand, and structure paths are resolved from the input JSON directory: {base}")
+    return resolved
 
 
 def load_native_targets(path, args):
@@ -40,45 +43,45 @@ def load_native_targets(path, args):
     from oridynamic.batch_predict import validate_name
     rows = json.loads(Path(path).read_text())
     if not isinstance(rows, list) or not rows:
-        raise ValueError('--input-json须为非空PTX任务数组')
+        raise ValueError('--input-json must contain a nonempty PTX task array')
     result, names = [], set()
     base = Path(path).resolve().parent
     for original in rows:
         if not isinstance(original, dict):
-            raise ValueError('每个任务须为JSON对象')
+            raise ValueError('Each task must be a JSON object')
         unknown = set(original) - {'name', 'sequences', 'initial_structure', 'structure_chains'}
         if unknown:
-            raise ValueError(f'尚未接入的任务字段：{sorted(unknown)}；不静默丢弃约束/共价键')
+            raise ValueError(f'Unsupported task fields: {sorted(unknown)}; constraints/covalent bonds cannot be silently discarded')
         name = original.get('name'); validate_name(name)
         if name in names:
-            raise ValueError(f'重复目标名：{name}')
+            raise ValueError(f'Duplicate target name: {name}')
         names.add(name)
         entities = copy.deepcopy(original.get('sequences'))
         if not isinstance(entities, list) or not entities:
-            raise ValueError(f'{name}: sequences必须为非空列表')
+            raise ValueError(f'{name}: sequences must be a nonempty list')
         target = dict(name=name, protein_inputs=[], native_input=dict(name=name, sequences=entities))
         ids, protein_count, ligand_count = set(), 0, 0
         for index, entity in enumerate(entities):
             if not isinstance(entity, dict) or len(entity) != 1 or next(iter(entity)) not in ('proteinChain', 'ligand'):
-                raise ValueError('本入口接受proteinChain和ligand；RNA/DNA/离子/共价修饰另验，不静默转换')
+                raise ValueError('This interface accepts proteinChain and ligand; RNA/DNA, ions, and covalent modifications are not validated')
             kind, spec = next(iter(entity.items()))
             if not isinstance(spec, dict):
-                raise ValueError('entity内容须为对象')
+                raise ValueError('Entity contents must be a JSON object')
             allowed = {'id', 'count', 'sequence', 'unpairedMsaPath', 'pairedMsaPath'} if kind == 'proteinChain' else {'id', 'count', 'ligand'}
             if set(spec) - allowed:
-                raise ValueError(f'{name}/{kind}: 未接入字段 {sorted(set(spec)-allowed)}')
+                raise ValueError(f'{name}/{kind}: unsupported fields {sorted(set(spec)-allowed)}')
             count = spec.setdefault('count', 1)
             chain_ids = spec.get('id')
             if type(count) is not int or count < 1 or not isinstance(chain_ids, list) or len(chain_ids) != count:
-                raise ValueError('每个entity须显式id列表，且长度与正整数count一致（默认count=1）')
+                raise ValueError('Each entity requires an explicit id list whose length matches positive integer count (default 1)')
             for chain in chain_ids:
                 if not isinstance(chain, str) or not re.fullmatch(r'[A-Za-z0-9]{1,8}', chain) or chain in ids:
-                    raise ValueError('链ID须为1–8位字母数字，并在整个复合物中唯一')
+                    raise ValueError('Chain IDs must contain 1-8 alphanumeric characters and be unique within the complex')
                 ids.add(chain)
             if kind == 'proteinChain':
                 seq = spec.get('sequence')
                 if not isinstance(seq, str) or not seq or set(seq) - (AMINO_ACIDS-{'X'}):
-                    raise ValueError('蛋白链须为明确的20种标准氨基酸大写序列')
+                    raise ValueError('Protein chains must use uppercase sequences of the 20 standard amino acids')
                 row = dict(name=chain_ids[0], sequence=seq, entity_index=index)
                 for native_key, key in (('unpairedMsaPath', 'msa_a3m'), ('pairedMsaPath', 'paired_msa_a3m')):
                     if spec.get(native_key):
@@ -94,24 +97,24 @@ def load_native_targets(path, args):
                 elif args.single_sequence:
                     row['msa_mode'] = 'single_sequence'
                 else:
-                    raise ValueError(f'{name}/{chain_ids[0]}缺少unpaired MSA：提供A3M或本地库；不会自动调用在线服务')
+                    raise ValueError(f'{name}/{chain_ids[0]}: missing unpaired MSA; provide A3M or a local database; online search is not automatic')
                 target['protein_inputs'].append(row)
                 protein_count += count
             else:
                 value = spec.get('ligand')
                 if not isinstance(value, str) or not value.strip():
-                    raise ValueError('ligand须为CCD_CODE、SMILES或FILE_文件路径')
+                    raise ValueError('ligand must be CCD_CODE, SMILES, or FILE_<path>')
                 if value.startswith('CCD_') and not re.fullmatch(r'CCD_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*', value):
-                    raise ValueError('CCD标识格式错误')
+                    raise ValueError('Invalid CCD identifier')
                 if value.startswith('FILE_'):
                     p = resolved_file(value[5:], base)
                     if p.suffix.lower() not in ('.mol', '.sdf', '.mol2', '.pdb'):
-                        raise ValueError('配体FILE_仅支持PTX原生MOL/SDF/MOL2/PDB')
+                        raise ValueError('FILE_ ligands support MOL, SDF, MOL2, or PDB files')
                     spec['ligand'] = 'FILE_' + str(p)
                     target.setdefault('ligand_files', []).append(file_info(p))
                 ligand_count += count
         if protein_count == 0:
-            raise ValueError('本入口至少需要一条蛋白链，不将孤立小分子当PL')
+            raise ValueError('At least one protein chain is required; isolated ligands are not PL systems')
         target.update(modality='pl' if ligand_count else ('pp' if protein_count > 1 else 'monomer'),
                       protein_chains=protein_count, ligand_chains=ligand_count)
         modes = {p['msa_mode'] for p in proteins(target)}
@@ -119,18 +122,18 @@ def load_native_targets(path, args):
         if original.get('initial_structure'):
             p = resolved_file(original['initial_structure'], base)
             if p.suffix.lower() not in ('.cif', '.mmcif', '.pdb'):
-                raise ValueError('初始复合物结构须为PDB/mmCIF')
+                raise ValueError('Initial complex structure must be PDB or mmCIF')
             target.update(initial_structure=str(p), initial_structure_identity=file_info(p))
         mapping = original.get('structure_chains')
         if mapping is not None:
             if not target.get('initial_structure') or not isinstance(mapping, dict) or set(mapping) != ids:
-                raise ValueError('structure_chains须在给定anchor时覆盖全部输入链ID')
+                raise ValueError('structure_chains requires an anchor and must cover all input chain IDs')
             if any(not isinstance(v, str) or not v for v in mapping.values()) or len(set(mapping.values())) != len(ids):
-                raise ValueError('structure_chains必须一对一映射到anchor的author链ID')
+                raise ValueError('structure_chains must map one-to-one to anchor author chain IDs')
             target['structure_chains'] = mapping
         result.append(target)
     if args.limit is not None:
         if args.limit < 1:
-            raise ValueError('--limit必须为正')
+            raise ValueError('--limit must be positive')
         result = result[:args.limit]
     return result

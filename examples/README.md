@@ -50,4 +50,4 @@ oridynamic sample --input-json examples/five_cases.json --single-sequence \
   --out runs/five_cases_query_only
 ```
 
-The query-only five-target GPU smoke test previously completed on an NVIDIA H200. The bundled alignments are checked separately; execution of the query-only test does not establish ensemble quality with these MSAs. See the [complex-input guide](../docs/complex_inputs.md) for new systems, per-chain MSAs, and optional initial structures.
+The earlier query-only five-target GPU smoke test used Joint11500. Separately, the author-supplied H20 report records successful Joint200 execution with the bundled alignments. These checks establish execution for those inputs, not ensemble quality; see [model notes](../docs/model_card.md#validation-and-scope). See the [complex-input guide](../docs/complex_inputs.md) for new systems, per-chain MSAs, and optional initial structures.

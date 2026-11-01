@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""批量单体/PL/PP：全部anchor就绪后，再复用一次加载的Joint生成系综。"""
+"""Generate all-atom ensembles for independent monomer, protein-ligand, and protein-protein targets."""
 from __future__ import annotations
 
 import argparse
@@ -21,19 +21,19 @@ ROOT = Path(__file__).resolve().parents[1]
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
     source = p.add_mutually_exclusive_group(required=True)
-    source.add_argument('--fasta', type=Path, help='多条FASTA；每条作为独立单蛋白，不是复合物')
-    source.add_argument('--manifest', type=Path, help='目标JSON，支持各自MSA和初始结构；相对路径基于JSON')
-    source.add_argument('--input-json', type=Path, help='PTX原生任务数组：proteinChain/ligand，支持单体、PL、PP')
-    p.add_argument('--msa-dir', type=Path, help='FASTA模式下读取<目标名>.a3m；缺失项可本地搜索')
-    p.add_argument('--structure-dir', type=Path, help='FASTA模式下可选<目标名>.cif/.mmcif/.pdb，缺失项由PTX预测')
-    p.add_argument('--msa-a3m', type=Path, help='单条FASTA的已有MSA；不与--msa-dir混用')
-    p.add_argument('--initial-structure', type=Path, help='单条FASTA的可选PDB/mmCIF anchor')
-    p.add_argument('--structure-chain', help='单条FASTA初始结构的author链ID')
-    p.add_argument('--single-sequence', action='store_true', help='明确允许无MSA目标使用query-only；仅用于smoke')
+    source.add_argument('--fasta', type=Path, help='Multiple FASTA records, each treated as an independent monomer')
+    source.add_argument('--manifest', type=Path, help='Target manifest with per-target MSA and initial structures; paths are relative to the JSON file')
+    source.add_argument('--input-json', type=Path, help='PTX task array with proteinChain/ligand entries for monomer, PL, or PP inputs')
+    p.add_argument('--msa-dir', type=Path, help='Read <target>.a3m in FASTA mode; missing alignments may use local search')
+    p.add_argument('--structure-dir', type=Path, help='Optional <target>.cif/.mmcif/.pdb in FASTA mode; predict missing structures')
+    p.add_argument('--msa-a3m', type=Path, help='Existing MSA for a single FASTA record; incompatible with --msa-dir')
+    p.add_argument('--initial-structure', type=Path, help='Optional PDB/mmCIF anchor for a single FASTA record')
+    p.add_argument('--structure-chain', help='Author chain ID of the initial structure for a single FASTA record')
+    p.add_argument('--single-sequence', action='store_true', help='Allow query-only MSA for targets without alignments; for smoke testing')
     add_arguments(p)
-    p.add_argument('--out', type=Path, required=True, help='新的输出目录；拒绝覆盖，不隐式续跑')
-    p.add_argument('--paths', type=Path, default=ROOT / 'configs/portable_paths.example.json')
-    p.add_argument('--assets-root', type=Path, default=ROOT / 'assets', help='只读公共CCD资源根')
+    p.add_argument('--out', type=Path, required=True, help='New output directory; existing runs are not overwritten or resumed')
+    p.add_argument('--paths', type=Path, default=os.environ.get('ORIDYNAMIC_PATHS') or ROOT / 'configs/portable_paths.example.json')
+    p.add_argument('--assets-root', type=Path, default=os.environ.get('ORIDYNAMIC_ASSETS') or ROOT / 'assets', help='Read-only CCD resource root')
     p.add_argument('--seeds', default='0,1')
     p.add_argument('--samples-per-seed', type=int, default=8)
     p.add_argument('--sample-chunk-size', type=int, default=1)
@@ -44,15 +44,15 @@ def parser():
     p.add_argument('--device', default='cuda:0')
     p.add_argument('--dtype', choices=('bf16', 'fp32'), default='bf16')
     p.add_argument('--trace-inputs', action='store_true')
-    p.add_argument('--limit', type=int, help='仅处理输入中的前N条，便于快速检查')
-    p.add_argument('--plan', action='store_true', help='只读预检；不搜索、不导入Torch、不创建目录')
+    p.add_argument('--limit', type=int, help='Process only the first N input targets')
+    p.add_argument('--plan', action='store_true', help='Read-only preflight; no search, Torch import, or directory creation')
     return p
 
 
 def load_targets(a):
     if getattr(a, 'input_json', None):
         if any(getattr(a, k, None) for k in ('msa_dir', 'structure_dir', 'msa_a3m', 'initial_structure', 'structure_chain')):
-            raise ValueError('PTX JSON模式请在各entity/任务内填写MSA/anchor，不混用FASTA快捷参数')
+            raise ValueError('Set MSA/anchor paths within each JSON entity/target; do not combine with FASTA shortcut options')
         return load_native_targets(a.input_json, a)
     if a.fasta:
         rows = [dict(name=n.split()[0], sequence=s.upper()) for n, s in fasta_records(a.fasta)]
@@ -60,9 +60,9 @@ def load_targets(a):
         single_msa, single_structure = getattr(a, 'msa_a3m', None), getattr(a, 'initial_structure', None)
         chain = getattr(a, 'structure_chain', None)
         if (single_msa or single_structure or chain) and len(rows) != 1:
-            raise ValueError('单文件MSA/初始结构选项只适用于一条FASTA；多目标请使用目录或manifest')
+            raise ValueError('Single-file MSA/structure options require one FASTA record; use directories or a manifest for multiple targets')
         if (single_msa and a.msa_dir) or (single_structure and a.structure_dir):
-            raise ValueError('单文件选项不能与对应目录选项混用')
+            raise ValueError('Single-file and corresponding directory options cannot be combined')
         if single_msa: rows[0]['msa_a3m'] = str(single_msa.resolve(strict=True))
         if single_structure: rows[0]['initial_structure'] = str(single_structure.resolve(strict=True))
         if chain: rows[0]['structure_chain'] = chain
@@ -77,29 +77,29 @@ def load_targets(a):
                 candidates = [a.structure_dir / (row['name'] + suffix) for suffix in ('.cif', '.mmcif', '.pdb')]
                 candidates = [path for path in candidates if path.is_file()]
                 if len(candidates) > 1:
-                    raise ValueError(f"{row['name']}有多个初始结构；请用manifest明确选择")
+                    raise ValueError(f"{row['name']}Multiple initial structures found; select one explicitly in a manifest")
                 if candidates:
                     row['initial_structure'] = str(candidates[0].resolve())
     else:
         if a.msa_dir or a.structure_dir or any(getattr(a, k, None) for k in ('msa_a3m', 'initial_structure', 'structure_chain')):
-            raise ValueError('manifest模式请在各目标内填写路径，不混用目录参数')
+            raise ValueError('Set per-target paths in manifest mode; directory options cannot be combined')
         data = json.loads(a.manifest.read_text())
         if data.get('schema') not in ('oridynamic_offline_batch_v1', 'oridynamic_batch_request_v1'):
-            raise ValueError('未知manifest schema')
+            raise ValueError('Unknown manifest schema')
         rows = data['targets']
         base = a.manifest.resolve().parent
     if not isinstance(rows, list) or not rows:
-        raise ValueError('至少需要一条序列')
+        raise ValueError('At least one sequence is required')
     names, result = set(), []
     for item in rows:
         row = dict(item)
         validate_name(row['name'])
         if row['name'] in names:
-            raise ValueError(f"重复目标名：{row['name']}")
+            raise ValueError(f"Duplicate target name: {row['name']}")
         names.add(row['name'])
         sequence = row['sequence']
         if not sequence or set(sequence) - (AMINO_ACIDS - {'X'}):
-            raise ValueError(f"{row['name']}需要明确的20种氨基酸大写序列")
+            raise ValueError(f"{row['name']}Use uppercase sequences containing the 20 standard amino acids")
         # 丢弃无关输入字段；公共入口不读取轨迹/GT/frame0字段。
         row = {k: row[k] for k in ('name', 'sequence', 'msa_a3m', 'initial_structure', 'structure_chain') if k in row}
         for key in ('msa_a3m', 'initial_structure'):
@@ -109,9 +109,9 @@ def load_targets(a):
                 row[key] = str(path)
                 row[key + '_identity'] = file_info(path)
         if row.get('initial_structure') and Path(row['initial_structure']).suffix.lower() not in ('.cif', '.mmcif', '.pdb'):
-            raise ValueError('初始结构须为PDB/mmCIF')
+            raise ValueError('Initial structure must be PDB or mmCIF')
         if row.get('structure_chain') is not None and not row.get('initial_structure'):
-            raise ValueError('structure_chain需要initial_structure')
+            raise ValueError('structure_chain requires initial_structure')
         if row.get('msa_a3m'):
             _, row['msa_records'] = validate_a3m(Path(row['msa_a3m']), sequence)
             row['msa_mode'] = 'provided'
@@ -120,18 +120,18 @@ def load_targets(a):
         elif a.single_sequence:
             row['msa_mode'] = 'single_sequence'
         else:
-            raise ValueError(f"{row['name']}缺少MSA：提供A3M或--msa-local-db；不会自动调用在线服务")
+            raise ValueError(f"{row['name']}Missing MSA: supply A3M or --msa-local-db; online search is not automatic")
         result.append(row)
     if a.limit is not None:
         if a.limit < 1:
-            raise ValueError('--limit必须为正')
+            raise ValueError('--limit must be positive')
         result = result[:a.limit]
     return result
 
 
 def validate_name(name):
     if not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,119}', name):
-        raise ValueError('目标名需1–120个安全字母/数字/下划线/点/短横线')
+        raise ValueError('Target names must contain 1-120 letters, digits, underscores, dots, or hyphens')
 
 
 def execute_batch(engine, targets, progress):
@@ -153,26 +153,28 @@ def main(argv=None):
     a = parser().parse_args(argv)
     seeds = seed_list(a.seeds)
     if min(a.samples_per_seed, a.sample_chunk_size, a.attention_chunk_size) < 1:
-        raise ValueError('样本数与chunk必须为正')
+        raise ValueError('Sample counts and chunk sizes must be positive')
     if not 1 <= a.anchor_candidates <= 32 or not 0 <= a.anchor_seed <= 2**32-a.anchor_candidates:
-        raise ValueError('anchor预算/seed范围无效')
+        raise ValueError('Invalid anchor budget or seed range')
     if a.single_sequence and a.msa_local_db:
-        raise ValueError('query-only与本地搜索不能同时指定')
+        raise ValueError('Query-only MSA and local search are mutually exclusive')
     targets = load_targets(a)
     a.out = a.out.absolute()
     if a.out.exists() or a.out.is_symlink():
-        raise ValueError(f'输出已存在，拒绝覆盖：{a.out}')
-    a.assets_root = a.assets_root.resolve(strict=True)
+        raise ValueError(f'Output already exists; refusing to overwrite: {a.out}')
+    if not a.assets_root.is_dir():
+        raise ValueError(f"CCD resource directory not found: {a.assets_root}. Set ORIDYNAMIC_ASSETS or --assets-root; see INSTALL.md.")
+    a.assets_root = a.assets_root.resolve()
     for name in ('common/components.cif', 'common/components.cif.rdkit_mol.pkl'):
         if not (a.assets_root / name).is_file():
-            raise ValueError(f'缺少只读CCD资源：{name}')
+            raise ValueError(f'Missing read-only CCD resource: {name}')
     paths = json.loads(a.paths.read_text())
     weights = {}
     for key in ('native', 'codec', 'joint'):
         path = Path(paths['checkpoints'][key])
         weights[key] = (path if path.is_absolute() else a.paths.resolve().parent / path).resolve(strict=True)
         if not weights[key].is_file():
-            raise ValueError(f'权重不是文件：{weights[key]}')
+            raise ValueError(f'Checkpoint is not a file: {weights[key]}')
     from oridynamic.predict import select_runtime
     a.runtime_root = select_runtime(ROOT)
     if paths.get('runtime_source_root'):
@@ -180,14 +182,14 @@ def main(argv=None):
     if a.msa_local_db:
         a.msa_local_db = a.msa_local_db.resolve(strict=True)
         if a.out.resolve().is_relative_to(a.msa_local_db):
-            raise ValueError('输出不能放在MSA数据库内')
+            raise ValueError('Output cannot be inside the MSA database directory')
     plan = dict(schema='oridynamic_resident_batch_v1', targets=targets,
         seeds=seeds, samples_per_seed=a.samples_per_seed, sample_chunk_size=a.sample_chunk_size,
         anchor_candidates=a.anchor_candidates, phase_order=['all_base_anchors_and_contexts', 'all_joint_ensembles'],
         online_search=False, weights={k:str(v) for k,v in weights.items()})
     if a.plan:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
-        print('[只读预检完成] 未搜索、未加载模型、未写文件；本地工具可用性在正式搜索预检确认')
+        print('[Preflight complete] No search, model loading, or files written; local tool availability is checked before search')
         return
     if any(p['msa_mode'] == 'local' for t in targets for p in proteins(t)):
         # 在切换到输出目录之前解析相对可执行路径。
@@ -223,7 +225,7 @@ def main(argv=None):
                 for key, output in (('msa_a3m', 'provided.a3m'), ('paired_msa_a3m', 'paired.a3m')):
                     if protein.get(key + '_identity'):
                         if file_info(Path(protein[key])) != protein[key+'_identity']:
-                            raise ValueError(f"{target['name']}/{protein['name']}的MSA在输入检查后改变")
+                            raise ValueError(f"{target['name']}/{protein['name']} MSA changed after input validation")
                         text, _ = validate_a3m(Path(protein[key]), protein['sequence'])
                         path = chain_folder / output
                         path.write_text(text)
@@ -252,7 +254,7 @@ def main(argv=None):
                         inference_wall_seconds_excluding_msa=result['inference_wall_seconds_excluding_msa'])
         write_json(a.out / 'summary.json', result)
         write_json(a.out / 'progress.json', dict(phase='complete', completed=len(targets)))
-        print(f"[批量完成] {len(targets)}目标；base/codec/Joint各加载一次；{a.out}", flush=True)
+        print(f"[Batch complete] {len(targets)} targets; base/codec/Joint each loaded once; {a.out}", flush=True)
     except BaseException as exc:
         a.timing.finish('failed', error_type=type(exc).__name__)
         write_json(a.out / 'failure.json', dict(status='failed_not_complete', error=str(exc), type=type(exc).__name__))

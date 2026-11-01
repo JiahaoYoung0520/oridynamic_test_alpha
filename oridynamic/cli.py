@@ -8,10 +8,10 @@ from oridynamic import __version__
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    p = argparse.ArgumentParser(prog="oridynamic", description="OriDynamic：序列到全原子系综（单蛋白/独立多目标，仅推理）")
+    p = argparse.ArgumentParser(prog="oridynamic", description="OriDynamic: all-atom ensembles for monomers, protein-ligand complexes, and protein-protein assemblies")
     p.add_argument("--version", action="version", version=__version__)
     p.add_argument("command", nargs="?", choices=("sample", "msa", "doctor"),
-                   help="sample：生成系综；msa：本地搜索；doctor：只读环境/资源检查")
+                   help="sample: generate ensembles; msa: local MSA search; doctor: read-only environment/resource checks")
     if not argv or argv[0] in ("-h", "--help", "--version"):
         p.parse_args(argv)
         if not argv: p.print_help()
@@ -37,7 +37,7 @@ def main(argv=None):
     if command == "doctor":
         from oridynamic.doctor import main as doctor
         return doctor(argv)
-    p.error(f"未知子命令：{command}")
+    p.error(f"Unknown command: {command}")
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ class PreparationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_request(self.args)
         self.fasta.write_text(">a\nAAA\n>b\nCCC\n")
-        with self.assertRaisesRegex(ValueError, "一条"):
+        with self.assertRaisesRegex(ValueError, "one protein sequence"):
             build_request(self.args)
 
     def test_structure_and_msa_are_only_prechecked(self):
@@ -49,7 +49,7 @@ class PreparationTests(unittest.TestCase):
         self.assertIn("not_checked", request["anchor"]["validation"])
         self.assertIn("unpairedMsaPath", native[0]["sequences"][0]["proteinChain"])
         self.args.msa_a3m.write_text(">wrong\nACDFFG\n")
-        with self.assertRaisesRegex(ValueError, "不同"):
+        with self.assertRaisesRegex(ValueError, "differs"):
             build_request(self.args)
 
     def test_new_output_only(self):

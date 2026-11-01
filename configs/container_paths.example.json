@@ -1,7 +1,7 @@
 {
   "checkpoints": {
     "native": "/weights/protenix_base_default_v1.0.0.pt",
-    "codec": "/weights/all_atom_struct_vae_step0100000.pt",
-    "joint": "/weights/joint_step0000200.pt"
+    "codec": "/weights/ae.ckpt",
+    "joint": "/weights/oridynamic.ckpt"
   }
 }

@@ -1,3 +1,16 @@
+# Copyright 2026 LGLab Frontier AI Group.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """推理专用Joint；保留既有Heun/SDE、双上下文和anchor位移解码。"""
 from __future__ import annotations
@@ -20,13 +33,13 @@ class JointConfig:
 
     def __post_init__(self):
         if self.refiner_precision not in {'native', 'legacy_amp'}:
-            raise ValueError('未知精度协议')
+            raise ValueError('Unknown precision contract')
         if min(self.samples, self.fm_steps, self.refiner_steps, self.n_cycle) < 1:
-            raise ValueError('采样数量必须为正')
+            raise ValueError('Sample counts must be positive')
         if not 0 < self.sigma_min < self.sigma_init:
-            raise ValueError('sigma范围错误')
+            raise ValueError('Invalid sigma range')
         if self.activation_checkpoint:
-            raise ValueError('推理版不启用梯度checkpoint')
+            raise ValueError('Gradient checkpointing must be disabled for inference')
 
     @classmethod
     def from_checkpoint(cls, config):
@@ -37,7 +50,7 @@ class JointConfig:
 
 def maybe_checkpoint(fn, *args, enabled):
     if enabled:
-        raise ValueError('推理版不提供梯度checkpoint')
+        raise ValueError('Gradient checkpointing is unavailable during inference')
     return fn(*args)
 
 def flow_rollout(velocity, initial, steps: int, mask, *, checkpoint_steps=True):
@@ -164,17 +177,17 @@ class JointEnsembleModel(nn.Module):
 
     def train(self, mode=True):
         if mode:
-            raise RuntimeError('发布版仅推理，不提供Joint训练接口')
+            raise RuntimeError('This release provides inference only, without a Joint training interface')
         super().train(False)
         return self
 
     @torch.no_grad()
     def online_context(self, features):
         if self.training:
-            raise RuntimeError('请先调用eval()')
+            raise RuntimeError('Call eval() before inference')
         if self._native_template_blocks is not None:
             self.native.template_embedder.n_blocks = 0 if self.disable_online_templates else self._native_template_blocks
         return self.native.get_pairformer_output(features, self.config.n_cycle, inplace_safe=False, chunk_size=self.config.chunk_size)
 
     def forward(self, *args, **kwargs):
-        raise RuntimeError('发布版请调用generate；不接受训练batch或loss请求')
+        raise RuntimeError('Use generate for inference; training batches and loss requests are unsupported')

@@ -14,7 +14,7 @@ keeps trunk knowledge intact while letting the model specialize to the
 finetuning dataset with <1% extra trainable params and matching <1%
 optimizer-state memory.
 
-Usage (from train.py):
+Usage:
 
     from protenix.model.lora import inject_lora
     if configs.lora.enabled:

@@ -34,7 +34,7 @@ def _cache_tree(value):
         return [_cache_tree(v) for v in value]
     if type(value) is tuple:
         return tuple(_cache_tree(v) for v in value)
-    raise TypeError(f'不支持的缓存对象：{type(value).__name__}')
+    raise TypeError(f'Unsupported cache object: {type(value).__name__}')
 
 
 def pack_atoms(atoms):
@@ -58,12 +58,12 @@ def unpack_atoms(value):
 
 def write_prepared(folder, features, atoms, identities, anchor, c0, contract):
     """只存CPU张量和基本类型；不是任意Python对象pickle，逐目标磁盘卸载O(N²)上下文。"""
-    rt.require(runner.build_reference_identities(atoms) == identities, '缓存原子身份不符')
+    rt.require(runner.build_reference_identities(atoms) == identities, 'Cached atom identities do not match')
     payload = _cache_tree(dict(schema='oridynamic_prepared_target_v1', contract=contract,
         features=features, atoms=pack_atoms(atoms), identities=identities, anchor=anchor, c0=c0))
     rt.fingerprints(payload)  # 拒绝自定义对象/非张量数组；不在cache中存模型或训练样本。
     path = folder / 'prepared.pt'
-    rt.require(not path.exists(), '拒绝覆盖prepared缓存')
+    rt.require(not path.exists(), 'Refusing to overwrite prepared cache')
     temp = path.with_suffix('.pt.tmp')
     torch.save(payload, temp)
     temp.replace(path)
@@ -72,14 +72,14 @@ def write_prepared(folder, features, atoms, identities, anchor, c0, contract):
 
 def read_prepared(folder, contract):
     record = json.loads((folder / 'prepared.json').read_text())
-    rt.require(record['contract'] == contract, 'prepared输入/权重/协议不匹配')
+    rt.require(record['contract'] == contract, 'Prepared input, checkpoint, or protocol mismatch')
     path = folder / 'prepared.pt'
-    rt.require(file_info(path) == record['payload'], 'prepared文件已改变')
+    rt.require(file_info(path) == record['payload'], 'Prepared file has changed')
     payload = torch.load(path, map_location='cpu', weights_only=True)
     rt.require(payload['schema'] == 'oridynamic_prepared_target_v1' and payload['contract'] == contract,
-               'prepared payload协议不符')
+               'Prepared payload protocol mismatch')
     atoms = unpack_atoms(payload['atoms'])
-    rt.require(runner.build_reference_identities(atoms) == payload['identities'], '缓存原子身份改变')
+    rt.require(runner.build_reference_identities(atoms) == payload['identities'], 'Cached atom identities changed')
     return payload, atoms
 
 
@@ -91,7 +91,7 @@ class ResidentRuntime:
         self.native = self.model = self.saved = None
         self.load_counts = dict(native=0, codec=0, joint=0)
         self.device = torch.device(args.device)
-        rt.require(self.device.type == 'cuda' and torch.cuda.is_available(), '批量推理需要CUDA；CPU请运行tests')
+        rt.require(self.device.type == 'cuda' and torch.cuda.is_available(), 'Batch inference requires CUDA; use the test suite for CPU checks')
         torch.set_num_threads(1)
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.allow_tf32 = False
@@ -105,7 +105,7 @@ class ResidentRuntime:
                              gpu_name=torch.cuda.get_device_name(self.device))
 
     def load_base(self):
-        rt.require(self.native is None and self.model is None, 'base只能加载一次')
+        rt.require(self.native is None and self.model is None, 'The base model can only be loaded once')
         with self.timer.stage('joint_load_and_weight_hashes'):
             self.saved, self.hashes = rt.load_parent(self.weights)
             self.cfg = rt.make_config(self.a, self.saved)
@@ -140,14 +140,14 @@ class ResidentRuntime:
         return a
 
     def prepare(self, target):
-        rt.require(self.model is None, 'LoRA加载后禁止再生成base anchor/C0')
+        rt.require(self.model is None, 'Base anchors/C0 cannot be generated after loading LoRA')
         a = self.target_args(target, 'anchor_phase')
         cfg = copy.deepcopy(self.cfg)
         cfg.input_json_path = str(a.out / 'input.json')
         cfg.dump_dir = str(a.out / 'native')
-        rt.require(all(p.get('msa_a3m') for p in proteins(target)), '批量入口不允许隐式在线搜索')
+        rt.require(all(p.get('msa_a3m') for p in proteins(target)), 'Batch inference does not allow implicit online search')
         for identity in target.get('ligand_files', []):
-            rt.require(file_info(Path(identity['path'])) == identity, '配体文件在输入检查后改变')
+            rt.require(file_info(Path(identity['path'])) == identity, 'Ligand file changed after input validation')
         with self.timer.stage('anchor_target', gpu=True, target=target['name']):
             features_cpu, atoms, identities = rt.prepare_features(a, cfg,
                 [native_sample(target)])
@@ -161,7 +161,7 @@ class ResidentRuntime:
                 if a.initial_structure:
                     with a.timing.stage('user_anchor_map'):
                         rt.require(file_info(Path(a.initial_structure)) == target['initial_structure_identity'],
-                                   '用户初始结构在输入检查后改变')
+                                   'Initial structure changed after input validation')
                         anchor = rt.map_structure(a.initial_structure, atoms, a.structure_chain, a.structure_chains)
                     selection = dict(source='user_structure', input=target['initial_structure_identity'])
                 else:
@@ -204,7 +204,7 @@ class ResidentRuntime:
         self.joint_step = int(self.saved['step'])
         self.saved = None
         gc.collect()
-        rt.require(not any(p.requires_grad for p in self.model.parameters()), '推理模型必须冻结')
+        rt.require(not any(p.requires_grad for p in self.model.parameters()), 'Inference model parameters must be frozen')
         select_runtime(self.a.runtime_root)
 
     def sample(self, target):

@@ -50,7 +50,7 @@ class ComplexInputTests(unittest.TestCase):
     def test_no_implicit_search_and_reject_unsupported(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
-            with self.assertRaisesRegex(ValueError,'不会自动调用在线'):self.load(root,tasks(),())
+            with self.assertRaisesRegex(ValueError,'online search is not automatic'):self.load(root,tasks(),())
             for mutate in (
                 lambda t:t.update(covalent_bonds=[]),
                 lambda t:t['sequences'][1]['ligand'].update(id=['A']),
@@ -60,6 +60,13 @@ class ComplexInputTests(unittest.TestCase):
             ):
                 task=tasks()[0];mutate(task)
                 with self.assertRaises(ValueError):self.load(root,[task])
+
+    def test_missing_json_relative_path_explains_base(self):
+        from oridynamic.complex_inputs import resolved_file
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, 'input JSON directory') as exc:
+                resolved_file('msas/missing.a3m', Path(tmp))
+            self.assertIn(str(Path(tmp)/'msas/missing.a3m'), str(exc.exception))
 
     def atoms(self):
         a=struc.AtomArray(8)

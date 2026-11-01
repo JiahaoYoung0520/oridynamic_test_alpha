@@ -10,3 +10,6 @@ and attribution notices in the source files are preserved.
 The Apache-2.0 license text for OriDynamic is provided in LICENSE.
 Third-party dependencies and external data resources retain their
 respective terms.
+
+See THIRD_PARTY_NOTICES for the MIT notices for code adapted from Triton
+and torch_scatter; these portions retain their original licenses.

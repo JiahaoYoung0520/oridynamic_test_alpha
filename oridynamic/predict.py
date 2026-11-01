@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""单蛋白：原生MSA/特征→自动或用户anchor→Joint→CIF；不启动训练。"""
+"""Single-protein inference from sequence and optional structure to an all-atom ensemble."""
 from __future__ import annotations
 
 import argparse
@@ -17,53 +17,53 @@ from oridynamic.inference_timing import TimingLog
 def select_runtime(root: Path) -> Path:
     root = root.resolve(strict=True)
     if root != Path(__file__).resolve().parents[1]:
-        raise ValueError("此发布版只允许自身代码目录，不接受其他仓库runtime-root")
+        raise ValueError("This release uses its own runtime; runtime-root cannot point to another repository")
     for name in ("oridynamic/runtime_utils.py", "protenix/model/modules/joint_ensemble.py"):
         if not (root / name).is_file():
-            raise ValueError(f"缺少现有运行代码：{root / name}")
+            raise ValueError(f"Runtime code is missing: {root / name}")
     for name, module in list(sys.modules.items()):
         if name.split(".")[0] in {"runner", "protenix", "configs", "scripts"}:
             path = getattr(module, "__file__", None)
             if path and not Path(path).resolve().is_relative_to(root):
-                raise ValueError(f"已导入其他仓库的{name}：{path}，请使用新Python进程")
+                raise ValueError(f"Already imported a module from another repository: {name}：{path}; start a new Python process")
     sys.path.insert(0, str(root))
     return root
 
 
-def main():
+def main(argv=None):
     started = time.perf_counter()
     here = Path(__file__).resolve().parents[1]
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--fasta", type=Path, required=True, help="一条蛋白序列")
-    p.add_argument("--name", help="目标名，默认FASTA标题")
-    p.add_argument("--out", type=Path, required=True, help="新的输出目录；拒绝覆盖")
-    p.add_argument("--paths", type=Path, default=here / "configs/portable_paths.example.json", help="只读权重路径JSON；相对路径基于该JSON")
-    p.add_argument("--runtime-root", type=Path, help="兼容旧参数，但只允许本发布目录")
-    p.add_argument("--assets-root", type=Path, default=here / "assets", help="原生PTX只读CCD资源根")
-    p.add_argument("--seeds", default="0", help="最终生成种子，逗号分隔")
-    p.add_argument("--samples-per-seed", type=int, default=4, help="每种子的最终构象数")
-    p.add_argument("--sample-chunk-size", type=int, default=1, help="生成分块，不改变总样本数")
-    p.add_argument("--initial-structure", type=Path, help="可选完整单链PDB/mmCIF，不作为trunk模板")
-    p.add_argument("--structure-chain", help="初始结构的author链ID；不填时必须只有一条蛋白链")
-    p.add_argument("--msa-a3m", type=Path, help="已有unpaired A3M")
+    p.add_argument("--fasta", type=Path, required=True, help="One protein sequence")
+    p.add_argument("--name", help="Target name; defaults to the FASTA header")
+    p.add_argument("--out", type=Path, required=True, help="New output directory; existing output is not overwritten")
+    p.add_argument("--paths", type=Path, default=os.environ.get("ORIDYNAMIC_PATHS") or here / "configs/portable_paths.example.json", help="Read-only checkpoint path JSON; paths are relative to that JSON file")
+    p.add_argument("--runtime-root", type=Path, help="Legacy option; only this release directory is accepted")
+    p.add_argument("--assets-root", type=Path, default=os.environ.get("ORIDYNAMIC_ASSETS") or here / "assets", help="Read-only native PTX CCD resource root")
+    p.add_argument("--seeds", default="0", help="Comma-separated generation seeds")
+    p.add_argument("--samples-per-seed", type=int, default=4, help="Final conformation count per seed")
+    p.add_argument("--sample-chunk-size", type=int, default=1, help="Generation chunk size; does not change the total sample count")
+    p.add_argument("--initial-structure", type=Path, help="Optional complete single-chain PDB/mmCIF; not used as a trunk template")
+    p.add_argument("--structure-chain", help="Initial structure author chain ID; if omitted, exactly one protein chain is required")
+    p.add_argument("--msa-a3m", type=Path, help="Existing unpaired A3M")
     p.add_argument("--msa-server-mode", choices=("protenix", "colabfold"), default="protenix")
-    p.add_argument("--single-sequence", action="store_true", help="不联网，仅query MSA；用于离线smoke，非正常MSA质量协议")
+    p.add_argument("--single-sequence", action="store_true", help="Offline query-only MSA for smoke testing; not the normal quality protocol")
     add_arguments(p)
-    p.add_argument("--anchor-candidates", type=int, default=4, help="PTX候选数，每候选一个独立seed")
+    p.add_argument("--anchor-candidates", type=int, default=4, help="PTX anchor candidates, each with a separate seed")
     p.add_argument("--anchor-seed", type=int, default=101)
-    p.add_argument("--attention-chunk-size", type=int, default=32, help="复用原生trunk/codec/refiner注意力分块")
+    p.add_argument("--attention-chunk-size", type=int, default=32, help="Attention chunk size for trunk, codec, and refiner")
     p.add_argument("--attention-backend", choices=("torch", "cuequivariance"), default="torch")
     p.add_argument("--device", default="cuda:0")
-    p.add_argument("--dtype", choices=("bf16", "fp32"), default="bf16", help="trunk/codec/DiT；精修按父模型native精度")
-    p.add_argument("--check", action="store_true", help="CPU原生特征及真实模型严格加载检查；不搜索MSA、不执行模型前向")
-    p.add_argument("--trace-inputs", action="store_true", help="记录特征、C0、在线上下文及采样前RNG指纹；不改变随机数或采样")
-    a = p.parse_args()
+    p.add_argument("--dtype", choices=("bf16", "fp32"), default="bf16", help="Trunk/codec/DiT precision; refinement retains native precision boundaries")
+    p.add_argument("--check", action="store_true", help="CPU native feature and strict model loading check; no MSA search or model forward pass")
+    p.add_argument("--trace-inputs", action="store_true", help="Record feature, context, and pre-sampling RNG fingerprints without changing sampling")
+    a = p.parse_args(argv)
     try:
         validate_modes(a)
         if not 1 <= a.anchor_candidates <= 32 or a.attention_chunk_size < 1:
-            raise ValueError("anchor候选须1–32，attention chunk须为正")
+            raise ValueError("Anchor candidates must be 1-32 and attention chunk size must be positive")
         if not 0 <= a.anchor_seed < 2**32 - a.anchor_candidates + 1:
-            raise ValueError("anchor seed范围错误")
+            raise ValueError("Invalid anchor seed range")
         native_input, request = build_request(a)
         a.fasta = a.fasta.resolve()
         if a.initial_structure:
@@ -77,9 +77,9 @@ def main():
             a.msa_mmseqs = local_check["executables"]["mmseqs"]["path"]
             request["msa"] = {"mode": "local", "server_used": False, "status": "pending"}
         if "X" in native_input[0]["sequences"][0]["proteinChain"]["sequence"]:
-            raise ValueError("首版完整原子推理不接受X；请提供明确的20种氨基酸序列")
+            raise ValueError("All-atom inference requires the 20 standard amino acids; X is not accepted")
         request.update(schema="oridynamic_sequence_request_v1", status="cpu_check" if a.check else "submitted",
-                       pending=["执行见completion.json或failure.json"],
+                       pending=["See completion.json or failure.json for execution status"],
                        sampling_protocol="checkpoint_bound_joint_SDE20_and_native_anchor_SDE200")
         request.pop("ready_for_inference", None)
         if a.single_sequence:
@@ -91,19 +91,21 @@ def main():
         a.runtime_root = select_runtime(a.runtime_root or here)
         if paths.get("runtime_source_root"):
             select_runtime(Path(paths["runtime_source_root"]))
-        a.assets_root = a.assets_root.resolve(strict=True)
+        if not a.assets_root.is_dir():
+            raise ValueError(f"CCD resource directory not found: {a.assets_root}. Set ORIDYNAMIC_ASSETS or --assets-root; see INSTALL.md.")
+        a.assets_root = a.assets_root.resolve()
         def weight_path(value):
             path = Path(value)
             return (path if path.is_absolute() else a.paths.resolve().parent / path).resolve(strict=True)
         weights = {k: weight_path(paths["checkpoints"][k]) for k in ("native", "codec", "joint")}
         for path in weights.values():
             if not path.is_file():
-                raise ValueError(f"权重不是普通文件：{path}")
+                raise ValueError(f"Checkpoint is not a regular file: {path}")
         for filename in ("common/components.cif", "common/components.cif.rdkit_mol.pkl"):
             if not (a.assets_root / filename).is_file():
-                raise ValueError(f"缺少只读CCD资源：{a.assets_root / filename}；不会自动下载")
+                raise ValueError(f"Missing read-only CCD resource: {a.assets_root / filename}; automatic download is disabled")
         if a.out.exists() or a.out.is_symlink():
-            raise ValueError(f"输出已存在，请换新目录：{a.out}")
+            raise ValueError(f"Output exists; choose a new directory: {a.out}")
         a.out = a.out.absolute()
         a.out.mkdir(parents=True, exist_ok=False)
     except (ValueError, OSError, KeyError) as exc:
@@ -141,7 +143,7 @@ def main():
         write_json(a.out / "failure.json", {"error": str(exc), "type": type(exc).__name__,
             "status": "failed_not_complete"})
         raise
-    print(f"[{'CPU检查' if a.check else '推理'}完成] {a.out}", flush=True)
+    print(f"[{'CPU check' if a.check else 'Inference'} complete] {a.out}", flush=True)
 
 
 if __name__ == "__main__":

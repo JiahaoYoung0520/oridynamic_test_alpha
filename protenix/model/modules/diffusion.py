@@ -88,7 +88,6 @@ class DiffusionConditioning(nn.Module):
         self.transition_s1 = Transition(c_in=self.c_s, n=2)
         self.transition_s2 = Transition(c_in=self.c_s, n=2)
         self.frame_latent_proj = Linear(frame_latent_dim, self.c_s, initializer='zeros') if self.frame_latent_enabled else None
-        print(f'Diffusion Module has {self.sigma_data}')
 
     def prepare_cache(self, relp_feature: torch.Tensor, z_trunk: torch.Tensor, inplace_safe: bool=False) -> torch.Tensor:
         pair_z = torch.cat(tensors=[z_trunk, self.relpe(relp_feature)], dim=-1)

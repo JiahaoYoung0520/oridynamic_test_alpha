@@ -128,7 +128,7 @@ class Protenix(nn.Module):
         for cycle_no in range(N_cycle):
             with torch.set_grad_enabled(self.training and (not self.train_confidence_only) and (cycle_no == N_cycle - 1)):
                 if mc_dropout:
-                    z = z_init + F.dropout(self.linear_no_bias_z_cycle(self.layernorm_z_cycle(z)), p=self.configs.mc_dropout_rate)
+                    z = z_init + F.dropout(self.linear_no_bias_z_cycle(self.layernorm_z_cycle(z)), p=mc_dropout_rate)
                 else:
                     z = z_init + self.linear_no_bias_z_cycle(self.layernorm_z_cycle(z))
                 if inplace_safe:
@@ -256,7 +256,6 @@ class Protenix(nn.Module):
         N_sample = self.configs.sample_diffusion['N_sample']
         N_step = self.configs.sample_diffusion['N_step']
         sigma_init = self.configs.sample_diffusion.get('sigma_init')
-        logger.warning(f"[target-init][model] sigma_init={sigma_init} label_dict is None={label_dict is None} coord_shape={(tuple(label_dict['coordinate'].shape) if label_dict is not None and 'coordinate' in label_dict else 'NA')}")
         target_init_kwargs = {}
         if sigma_init is not None and label_dict is not None:
             target_init_kwargs = {'target_coords': label_dict['coordinate'], 'target_coords_mask': label_dict['coordinate_mask'], 'sigma_init': sigma_init}
@@ -302,7 +301,7 @@ class Protenix(nn.Module):
     @torch.no_grad()
     def forward(self, input_feature_dict, label_full_dict=None, label_dict=None, mode='inference', disable_inplace=False, mc_dropout_apply_rate=0.0):
         if mode != 'inference' or label_full_dict is not None or label_dict is not None or self.training:
-            raise ValueError('发布版只允许eval模式下无标签推理')
+            raise ValueError('This release supports label-free inference in eval mode only')
         input_feature_dict = update_input_feature_dict(self.relative_position_encoding.generate_relp(input_feature_dict))
         pred, log, times = self.main_inference_loop(input_feature_dict=input_feature_dict, label_dict=None, N_cycle=self.N_cycle, mode='inference', inplace_safe=not disable_inplace, chunk_size=self.configs.infer_setting.chunk_size, N_model_seed=self.N_model_seed, symmetric_permutation=None, mc_dropout_apply_rate=mc_dropout_apply_rate)
         log.update(time=times)

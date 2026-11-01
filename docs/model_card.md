@@ -2,9 +2,11 @@
 
 ## Default model
 
-The alpha release uses three matching inference exports: Protenix base v1.0.0, the full autoencoder with latent width 32 at step 100,000, and **Joint200** (`joint_step0000200.pt`). Joint200 is the checkpoint saved after 200 adaptation updates from Joint11500, using predicted anchors and online LoRA context for the codec. The step number refers to this adaptation run. The Joint export contains the latent flow module, coordinate refiner, trunk LoRA weights, and latent normalization statistics; a separate flow checkpoint is not required.
+The alpha release uses the official **Protenix base v1.0.0**, `ae.ckpt` (the structural autoencoder, latent width 32), and `oridynamic.ckpt` (latent flow, coordinate refiner, trunk LoRA weights, and latent normalization statistics). A separate flow checkpoint is not required.
 
-Use the matching [Hugging Face bundle](https://huggingface.co/DanielYoung0520/oridynamic_v0) with the code revision recorded in its `weights_manifest.json`. Training checkpoints cannot be supplied directly. Inference exports use restricted loading and strict checks of checkpoint hashes, architecture, and parameter sets. Optimizers, schedulers, training RNG state, and local dataset paths are excluded.
+The OriDynamic files are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). Obtain the Protenix base directly from the official URL in [INSTALL.md](../INSTALL.md#2-model-weights-and-ccd). Use the code revision recorded in `weights_manifest.json` or a compatible later revision. The loader verifies the exact upstream base hash, the matching codec identity, and strict model parameter sets using restricted deserialization. The two OriDynamic files are unchanged tensors under neutral filenames; filenames do not determine checkpoint compatibility.
+
+For provenance, the autoencoder was saved at step 100,000. The joint model is the checkpoint previously called **Joint200**, saved after 200 predicted-anchor adaptation updates from Joint11500. It uses online LoRA context for the frozen codec. The release exports exclude optimizers, schedulers, training RNG state, and local dataset paths.
 
 ## Sampling configuration
 
@@ -21,7 +23,12 @@ Chemical reference features (`ref_pos`) are distinct from the full-system anchor
 - Joint200 was adapted using labeled monomer and protein–ligand systems from the original test split. Performance on these systems is **not independent held-out evaluation**. This checkpoint should not be used to reproduce earlier Joint11500 benchmark claims without accounting for the adaptation.
 - Protein–protein systems were excluded from this adaptation and remain outside its training scope. The PP input and sampling interface is available; task-specific quality requires separate evaluation.
 - The exported Joint200 tensors are checked against the supplied training checkpoint. Full-size CPU model loading and small-module sampling regressions validate the weight and context routes. These checks do not establish structural quality or full-size GPU performance.
-- The earlier Joint11500 release completed a five-system query-only GPU smoke test: three monomers, one PL complex, and one PP assembly. That result does not constitute a GPU validation of Joint200.
+- An author-supplied deployment report dated **2026-11-01** records Joint200 inference on an NVIDIA H20 with the five bundled MSA examples (three monomers, one PL complex, one PP assembly), producing ten conformations. It also records twelve conformations each for a monomer, PL, and PP system. These are reported execution checks; raw H20 output artifacts have not been independently reviewed in this release update. They do not establish structural quality or an independent benchmark.
+- That H20 deployment used an existing image matching the pinned Python dependencies. It does not validate a fresh build of `docker/Dockerfile.inference`. An earlier query-only five-system smoke test used Joint11500 and is separate evidence.
 - FASTA describes monomers; JSON describes monomer, PL, or PP systems. Multiple FASTA records are independent targets. Complex sampling retains ligand atoms and relative partner geometry; see the [input format](complex_inputs.md).
 - Chunking and stage-wise offloading are implemented. Model sharding, cooperative multi-GPU inference, CPU-only generation, and arbitrary-length operation on 24 GB GPUs have not been established.
 - Generated conformations form an unordered ensemble, not an MD time series. Physical kinetics or thermodynamic basin populations are not guaranteed. CIF B-factors are placeholders, not pLDDT or RMSF.
+
+## Reproducibility
+
+Record the checkpoint hashes, inputs and MSAs, seeds, chunk sizes, attention backend, precision, and software/hardware environment. Matching seeds do not guarantee identical coordinates on GPU. Changing `--sample-chunk-size` can change which intermediate SDE noise draws are assigned to each sample and produce different conformations; it is not merely a memory setting. Keep it fixed when comparing individual samples. Reported same-seed differences on H20 have not been traced to a specific operation or independently reproduced here.

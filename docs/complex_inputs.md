@@ -53,4 +53,4 @@ Without a supplied structure, Protenix predicts the entire complex from its prot
 
 This interface adds complex input handling and strict atom mapping to the existing model. It does not introduce a separately trained PL/PP model. The default Joint200 checkpoint adapts Joint11500 on monomer and PL systems; PP was excluded from this adaptation and remains outside its training scope. See [model notes](model_card.md).
 
-The bundled five-system GPU smoke test has completed, including the PL and PP cases. This confirms execution and output generation for those inputs. Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.
+The author-supplied H20 report records successful Joint200 execution with the five bundled MSA examples, including PL and PP. This is an execution check; its provenance and limitations are described in [model notes](model_card.md#validation-and-scope). Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.

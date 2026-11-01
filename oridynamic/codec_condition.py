@@ -20,4 +20,4 @@ def joint_model_class(contract):
         return JointEnsembleModel
     if contract == ONLINE_CONTEXT:
         return OnlineCodecJoint
-    raise ValueError(f'未知codec条件协议：{contract}')
+    raise ValueError(f'Unknown codec conditioning contract: {contract}')

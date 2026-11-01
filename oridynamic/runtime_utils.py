@@ -24,11 +24,11 @@ def atomic_json(path, value):
 def _build_denoiser(backbone, config):
     from protenix.model.modules.latent_dit import LatentDiT
     require(backbone == 'dit' and config.get('ref_injection') != 'native_tokens',
-            '本发布版只接受已验证的旧Joint DiT架构')
+            'This release requires the validated Joint DiT architecture')
     return LatentDiT(**dict(config))
 
 def configure_sample_template(model, args, contract):
-    require(contract == 'joint_online_native_null_template_v1', '不支持此模板协议')
+    require(contract == 'joint_online_native_null_template_v1', 'Unsupported template contract')
     native_null_template_settings(model)
     model.disable_online_templates = False
     model.require_null_templates = True
@@ -178,9 +178,9 @@ def load_vae_checkpoint(checkpoint_path: Path, summary: Mapping[str, Any], devic
     payload = _torch_load(checkpoint_path)
     carrier = payload.get('train_config', {}).get('carrier_protocol', {})
     if carrier.get('protocol') == 'anchor_free_latent_or_product_v1':
-        raise ValueError('新无anchor/双空间权重必须使用 experiments.anchor_free_ae4.codec.load_codec；不能按旧anchor接口加载')
+        raise ValueError('Anchor-free/dual-space checkpoints are incompatible with this release codec')
     if carrier.get('protocol') == 'zero_global_anchor_codec_v1' and (not allow_anchor_free):
-        raise ValueError('实验codec不能使用旧anchor/cache路径；请用anchor_free_codec入口')
+        raise ValueError('Experimental codecs are incompatible with this release anchor/cache contract')
     state = _strip_module_prefix(_extract_model_state(payload))
     diffusion_config = find_diffusion_config(payload)
     if diffusion_config is not None:
@@ -220,13 +220,13 @@ def native_null_template_settings(model):
     template = getattr(model.native, 'template_embedder', None)
     blocks = getattr(model, '_native_template_blocks', None)
     if template is None or blocks != 2 or len(template.pairformer_stack.blocks) != blocks:
-        raise ValueError('native_null训练协议需要原生v1.0.0的完整2层模板模块')
+        raise ValueError('The native_null contract requires the complete two-layer v1.0.0 template module')
     if any((p.requires_grad for p in template.parameters())):
-        raise ValueError('模板参数必须冻结；本实验只训练Stage-B、diffusion和选定trunk LoRA')
+        raise ValueError('Template parameters must be frozen under this checkpoint contract')
     stack = template.pairformer_stack
     requested = getattr(model, '_template_requested_blocks_per_ckpt', stack.blocks_per_ckpt)
     if requested is not None and (not isinstance(requested, int) or requested < 1):
-        raise ValueError('原生模板checkpoint分组必须为正整数或None')
+        raise ValueError('Native template checkpoint grouping must be a positive integer or None')
     model._template_requested_blocks_per_ckpt = requested
     effective = None if requested is None else min(requested, blocks)
     stack.blocks_per_ckpt = effective
@@ -236,13 +236,13 @@ def validate_null_templates(features):
     """空模板仍是网络输入；禁止将真实结构或缺失特征误算为此对照。"""
     required = ('template_distogram', 'template_pseudo_beta_mask', 'template_unit_vector', 'template_backbone_frame_mask')
     if 'template_aatype' not in features or any((k not in features for k in required)):
-        raise ValueError('空模板对照缺少原生模板特征')
+        raise ValueError('Null-template input is missing native template features')
     keys = set(required) | {k for k in features if k.startswith('template_') and 'mask' in k}
     counts = {}
     for key in sorted(keys):
         value = features[key]
         if not isinstance(value, torch.Tensor) or not torch.isfinite(value).all() or value.count_nonzero():
-            raise ValueError(f'空模板对照拒绝非零或非有限的真实模板几何/掩码：{key}')
+            raise ValueError(f'Null-template inputs must have finite, zero template geometry/masks: {key}')
         counts[key] = 0
     return counts
 
@@ -352,18 +352,18 @@ def write_cif(path, stack, ids):
     pdbx.set_structure(cif, stack, data_block='oridynamic_legacy', include_bonds=False)
     entities = np.array([int(i['entity_id']) + 1 for i in ids])
     cif.block['atom_site']['label_entity_id'] = np.tile(entities, len(stack))
-    require(not path.exists(), f'拒绝覆盖CIF：{path}')
+    require(not path.exists(), f'Refusing to overwrite CIF: {path}')
     temp = path.with_suffix('.partial.cif')
-    require(not temp.exists(), f'存在未完成导出，请先核查：{temp}')
+    require(not temp.exists(), f'An incomplete export exists; inspect it first: {temp}')
     cif.write(temp)
     back_file = pdbx.CIFFile.read(temp)
     back = pdbx.get_structure(back_file, model=None, include_bonds=False, use_author_fields=False)
-    require(back.coord.shape == stack.coord.shape, 'CIF模型/原子数变化')
+    require(back.coord.shape == stack.coord.shape, 'CIF model/atom counts changed')
     for key in ('chain_id', 'res_id', 'res_name', 'atom_name', 'ins_code', 'element', 'hetero'):
-        require(np.array_equal(back.get_annotation(key), stack.get_annotation(key)), f'CIF身份变化：{key}')
+        require(np.array_equal(back.get_annotation(key), stack.get_annotation(key)), f'CIF identity changed: {key}')
     error = float(np.max(np.abs(back.coord - stack.coord)))
-    require(error <= 0.00051, f'CIF坐标误差过大：{error}')
-    require(np.array_equal(back_file.block['atom_site']['label_entity_id'].as_array(int), np.tile(entities, len(stack))), 'CIF实体身份变化')
+    require(error <= 0.00051, f'CIF coordinate error exceeds tolerance: {error}')
+    require(np.array_equal(back_file.block['atom_site']['label_entity_id'].as_array(int), np.tile(entities, len(stack))), 'CIF entity identities changed')
     os.replace(temp, path)
     os.chmod(path, 420)
     return error

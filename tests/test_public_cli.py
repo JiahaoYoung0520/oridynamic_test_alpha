@@ -1,6 +1,7 @@
 """公开CLI路由、资源检查与单目标快捷输入；不运行模型。"""
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 import io
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -50,6 +51,34 @@ class PublicCliTests(unittest.TestCase):
                 report = inspect(root / 'missing.json', root / 'missing_assets')
             self.assertEqual(report['status'], 'failed')
             self.assertEqual(list(root.iterdir()), [])
+
+    def test_predict_environment_and_explicit_override(self):
+        from oridynamic.predict import main as predict
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fasta = root / 'input.fasta'; fasta.write_text('>test\nACDE\n')
+            config = root / 'paths.json'; config.write_text('{}')
+            argv = ['--fasta', str(fasta), '--single-sequence', '--check', '--out', str(root/'out')]
+            with patch.dict(os.environ, {'ORIDYNAMIC_PATHS': str(config), 'ORIDYNAMIC_ASSETS': str(root/'env_assets')}):
+                for extra, expected in [([], 'env_assets'), (['--assets-root', str(root/'cli_assets')], 'cli_assets')]:
+                    error = io.StringIO()
+                    with redirect_stderr(error), self.assertRaises(SystemExit) as exc:
+                        predict(argv + extra)
+                    self.assertEqual(exc.exception.code, 2)
+                    self.assertIn(expected, error.getvalue())
+                    self.assertIn('ORIDYNAMIC_ASSETS', error.getvalue())
+                    self.assertFalse((root/'out').exists())
+                error = io.StringIO()
+                with redirect_stderr(error), self.assertRaises(SystemExit):
+                    predict(argv + ['--paths', str(root/'explicit.json')])
+                self.assertIn('explicit.json', error.getvalue())
+
+    def test_public_help_is_english(self):
+        import re
+        for module, args in [('oridynamic', ['sample', '--help']), ('oridynamic.predict', ['--help']),
+                             ('oridynamic', ['msa', '--help']), ('oridynamic', ['doctor', '--help'])]:
+            result = subprocess.run([sys.executable, '-B', '-m', module, *args], check=True, capture_output=True, text=True)
+            self.assertIsNone(re.search('[\u4e00-\u9fff]', result.stdout), module)
 
     def test_unknown_command_rejected(self):
         with redirect_stdout(io.StringIO()), self.assertRaises(SystemExit): main(['train'])

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""本地MSA薄适配：复用ColabFold/MMseqs2，不导入模型、不调用在线服务。"""
+"""Prepare local protein MSAs with ColabFold/MMseqs2."""
 from __future__ import annotations
 
 import argparse
@@ -16,36 +16,36 @@ from oridynamic.prepare import AMINO_ACIDS, fasta_records, file_info
 
 
 def add_arguments(parser):
-    parser.add_argument("--msa-local-db", type=Path, help="启用本地搜索，指定已准备好的ColabFold数据库目录")
-    parser.add_argument("--msa-search-executable", default="colabfold_search", help="本地ColabFold可执行文件；可位于独立环境")
-    parser.add_argument("--msa-mmseqs", default="mmseqs", help="MMseqs2可执行文件")
-    parser.add_argument("--msa-device", choices=("cpu", "gpu"), default="cpu", help="搜索设备；GPU可见范围由CUDA_VISIBLE_DEVICES控制")
-    parser.add_argument("--msa-threads", type=int, default=16, help="搜索线程上限；会按CPU affinity限制")
-    parser.add_argument("--msa-uniref-db", default="uniref30_2302_db", help="UniRef库前缀，对应原生--db1")
-    parser.add_argument("--msa-env-db", default="colabfold_envdb_202108_db", help="环境库前缀，对应原生--db3，不是模板库--db2")
+    parser.add_argument("--msa-local-db", type=Path, help="Enable local search using a prepared ColabFold database directory")
+    parser.add_argument("--msa-search-executable", default="colabfold_search", help="Local ColabFold executable, optionally in a separate environment")
+    parser.add_argument("--msa-mmseqs", default="mmseqs", help="MMseqs2 executable")
+    parser.add_argument("--msa-device", choices=("cpu", "gpu"), default="cpu", help="Search device; CUDA_VISIBLE_DEVICES controls GPU visibility")
+    parser.add_argument("--msa-threads", type=int, default=16, help="Maximum search threads, capped by CPU affinity")
+    parser.add_argument("--msa-uniref-db", default="uniref30_2302_db", help="UniRef database prefix, passed to --db1")
+    parser.add_argument("--msa-env-db", default="colabfold_envdb_202108_db", help="Environmental database prefix, passed to --db3 (not template database --db2)")
 
 
 def validate_modes(args):
     if sum(bool(x) for x in (args.msa_a3m, args.single_sequence, args.msa_local_db)) > 1:
-        raise ValueError("--msa-a3m、--single-sequence、--msa-local-db只能选择一种")
+        raise ValueError("Choose only one of --msa-a3m, --single-sequence, or --msa-local-db")
     if args.check and not (args.msa_a3m or args.single_sequence):
-        raise ValueError("predict --check不搜索；先用oridynamic msa搜索，再提供--msa-a3m")
+        raise ValueError("predict --check does not search; run oridynamic msa first and supply --msa-a3m")
 
 
 def query_sequence(fasta):
     rows = fasta_records(Path(fasta))
     if len(rows) != 1:
-        raise ValueError("本地推理搜索每次仅支持一条蛋白序列")
+        raise ValueError("Each local inference search requires one protein sequence")
     sequence = rows[0][1].upper()
     if set(sequence) - (AMINO_ACIDS - {"X"}):
-        raise ValueError("需要20种明确氨基酸；不接受X、多链或配体FASTA")
+        raise ValueError("Use the 20 standard amino acids; X, multiple chains, and ligand FASTA are not accepted")
     return sequence
 
 
 def executable(value):
     found = shutil.which(str(value))
     if not found:
-        raise ValueError(f"未找到可执行文件：{value}；见INSTALL.md，不会自动安装/回退到网络")
+        raise ValueError(f"Executable not found: {value}; see INSTALL.md; no automatic installation or network fallback")
     return str(Path(found).resolve())
 
 
@@ -66,18 +66,18 @@ def search_environment(out, threads, device):
 def preflight(args):
     sequence = query_sequence(args.fasta)
     if args.msa_threads < 1:
-        raise ValueError("--msa-threads必须为正")
+        raise ValueError("--msa-threads must be positive")
     if not args.msa_local_db:
-        raise ValueError("缺少--msa-local-db")
+        raise ValueError("Missing --msa-local-db")
     database = args.msa_local_db.resolve(strict=True)
     if not database.is_dir():
-        raise ValueError(f"数据库根不是目录：{database}")
+        raise ValueError(f"Database root is not a directory: {database}")
     if Path(args.out).resolve().is_relative_to(database):
-        raise ValueError("MSA/推理输出不能放在数据库目录内")
+        raise ValueError("MSA/inference output cannot be inside the database directory")
     db_info = {}
     for role, name in (("uniref", args.msa_uniref_db), ("environment", args.msa_env_db)):
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name):
-            raise ValueError("数据库前缀须为文件名，不能含路径")
+            raise ValueError("Database prefixes must be filenames, not paths")
         marker = database / (name + ".dbtype")
         db_info[role] = dict(prefix=name, dbtype=file_info(marker))
     threads = min(args.msa_threads, len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else os.cpu_count() or 1)
@@ -106,7 +106,7 @@ def validate_a3m(path, sequence):
     lines = path.read_text().splitlines()
     if lines and lines[0].startswith("#"):
         if lines[0].strip() != f"#{len(sequence)}\t1":
-            raise ValueError("ColabFold输出不是本次单体/单拷贝长度")
+            raise ValueError("ColabFold output length does not match this monomer/single-copy input")
         lines = lines[1:]
     records, header, parts = [], None, []
     for line in lines:
@@ -118,23 +118,23 @@ def validate_a3m(path, sequence):
                 records.append((header, "".join(parts)))
             header, parts = line, []
         elif header is None:
-            raise ValueError("A3M缺少标题")
+            raise ValueError("A3M header is missing")
         else:
             parts.append(line)
     if header is not None:
         records.append((header, "".join(parts)))
     if not records or records[0][1] != sequence:
-        raise ValueError("搜索A3M的query与输入FASTA不同")
+        raise ValueError("Search A3M query differs from the input FASTA")
     normalized = []
     for header, row in records:
         if len(header) < 2 or not re.fullmatch(r"[A-Za-z.\-]+", row):
-            raise ValueError("A3M包含空行记录或非法字符")
+            raise ValueError("A3M contains empty records or invalid characters")
         row = row.replace(".", "")
         aligned = "".join(c for c in row if not c.islower())
         if len(aligned) != len(sequence):
-            raise ValueError(f"A3M比对列数不同：{header}")
+            raise ValueError(f"A3M alignment column counts differ: {header}")
         if set(aligned) - set("ACDEFGHIKLMNPQRSTVWYBXZUO-"):
-            raise ValueError(f"A3M有原生蛋白字母表外字符：{header}")
+            raise ValueError(f"A3M contains characters outside the native protein alphabet: {header}")
         normalized.extend((header, row))
     return "\n".join(normalized) + "\n", len(records)
 
@@ -147,11 +147,11 @@ def run_search(args, out):
     report = preflight(args)
     out = Path(out).absolute()
     if out.exists() or out.is_symlink():
-        raise ValueError(f"MSA输出已存在，拒绝覆盖或复用未验收中间文件：{out}")
+        raise ValueError(f"MSA output already exists; refusing to overwrite or reuse unchecked intermediate files: {out}")
     out = out.resolve()
     # 只允许新输出位于数据库外；杜绝把中间文件写进共享库。
     if out.is_relative_to(Path(report["database_root"])):
-        raise ValueError("MSA输出不能放在数据库目录内")
+        raise ValueError("MSA output cannot be inside the database directory")
     out.mkdir(parents=True, exist_ok=False)
     for name in ("tmp", ".cache"):
         (out / name).mkdir()
@@ -169,13 +169,13 @@ def run_search(args, out):
         (out / "colabfold_help.txt").write_text(help_text)
         for option in ("--gpu", "--gpu-server", "--db3", "--use-templates", "--unpack"):
             if option not in help_text:
-                raise ValueError(f"colabfold_search不支持{option}，请按INSTALL.md安装兼容版本")
+                raise ValueError(f"colabfold_search does not support {option}; install a compatible version following INSTALL.md")
         version = subprocess.run([report["executables"]["mmseqs"]["path"], "version"], env=env,
                                  cwd=out, capture_output=True, text=True, check=True, timeout=30)
         report["mmseqs_version"] = version.stdout.strip()
         report["status"] = "running"
         write_json(out / "search.json", report)
-        print(f"[本地MSA] device={args.msa_device} threads={report['threads']}；日志={out / 'search.log'}", flush=True)
+        print(f"[Local MSA] device={args.msa_device} threads={report['threads']}; log={out / 'search.log'}", flush=True)
         # 日志逐行前台显示；不启动常驻服务或后台任务。
         with (out / "search.log").open("x") as log:
             with subprocess.Popen(report["command"], cwd=out, env=env, stdout=subprocess.PIPE,
@@ -186,7 +186,7 @@ def run_search(args, out):
                         log.write(line)
                         log.flush()
                     if process.wait() != 0:
-                        raise RuntimeError(f"本地MSA搜索失败(code={process.returncode})；查看{out / 'search.log'}")
+                        raise RuntimeError(f"Local MSA search failed (code={process.returncode}); see {out / 'search.log'}")
                 except BaseException:
                     # 只清理本次子进程组（包括MMseqs），不留GPU子进程占用显存。
                     try:
@@ -201,14 +201,14 @@ def run_search(args, out):
                     raise
         candidates = sorted((out / "raw").glob("*.a3m"))
         if len(candidates) != 1:
-            raise ValueError(f"单序列搜索应产生一个最终A3M，实际{len(candidates)}个；拒绝猜测")
+            raise ValueError(f"Single-sequence search must produce one final A3M; found {len(candidates)}; refusing to select one implicitly")
         text, count = validate_a3m(candidates[0], report["sequence"])
         a3m = out / "unpaired.a3m"
         a3m.write_text(text)
         report.update(status="complete", elapsed_seconds=time.monotonic()-start, n_records=count,
                       raw_a3m=file_info(candidates[0]), a3m=file_info(a3m), query_only=(count == 1))
         write_json(out / "search.json", report)
-        print(f"[本地MSA完成] records={count} query_only={count == 1}；{a3m}", flush=True)
+        print(f"[Local MSA complete] records={count} query_only={count == 1}；{a3m}", flush=True)
         return a3m, report
     except BaseException as exc:
         report.update(status="failed", error=f"{type(exc).__name__}: {exc}", elapsed_seconds=time.monotonic()-start)
@@ -228,8 +228,8 @@ def attach_local_msa(args, native_input, request):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument("--fasta", type=Path, required=True)
-    parser.add_argument("--out", type=Path, required=True, help="新的MSA目录；不能复用失败目录")
-    parser.add_argument("--check", action="store_true", help="仅检查路径/数据库标记/可执行文件；不搜索、不写文件")
+    parser.add_argument("--out", type=Path, required=True, help="New MSA output directory; failed run directories cannot be reused")
+    parser.add_argument("--check", action="store_true", help="Check paths, database markers, and executables only; no search or file writes")
     add_arguments(parser)
     args = parser.parse_args()
     if args.check:

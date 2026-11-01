@@ -133,10 +133,8 @@
   "enable_tf32": false,
   "esm": {
     "embedding_dim": 2560,
-    "embedding_dir": "./esm_embeddings/esm2-3b",
     "enable": false,
-    "model_name": "esm2-3b",
-    "sequence_fpath": "./esm_embeddings/input_prot_sequences.csv"
+    "model_name": "esm2-3b"
   },
   "infer_setting": {
     "chunk_size": 32,
@@ -147,8 +145,6 @@
       "2560": 128
     },
     "dynamic_chunk_size": false,
-    "lddt_metrics_chunk_size": 1,
-    "lddt_metrics_sparse_enable": true,
     "sample_diffusion_chunk_size": 5
   },
   "inference_noise_scheduler": {

@@ -35,7 +35,6 @@ class InferenceNoiseScheduler:
         self.s_max = s_max
         self.s_min = s_min
         self.rho = rho
-        print(f'inference scheduler {self.sigma_data}')
 
     def __call__(self, N_step: int=200, device: torch.device=torch.device('cpu'), dtype: torch.dtype=torch.float32, sigma_init: Optional[float]=None) -> torch.Tensor:
         """Schedule the noise-level (time steps). No sampling is performed.

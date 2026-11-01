@@ -21,3 +21,5 @@ Local MSA search calls the public ColabFold/MMseqs2 CLI. The six example alignme
 Package and documentation organization was informed by [BioEmu2](https://github.com/microsoft/bioemu2) and [RFD4-Proteina](https://github.com/RosettaCommons/RFD4-Proteina). Their source code, models, training and sampling implementations, and licenses were not copied.
 
 Predictions do not read ground-truth structures or MD trajectories for selection. Execution checks and task-specific quality evaluations are distinct; see the [model notes](model_card.md).
+
+Adapted Triton autotuning and torch_scatter utility code retain their MIT notices in [THIRD_PARTY_NOTICES](../THIRD_PARTY_NOTICES).

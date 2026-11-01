@@ -14,7 +14,6 @@
 
 import json
 import os
-import subprocess
 import traceback
 from collections import defaultdict
 from copy import deepcopy
@@ -295,22 +294,4 @@ class RequestParser(object):
         return msa_res_subdirs
 
     def launch(self) -> None:
-        input_json_path = self.get_data_json()
-        checkpoint_dir = self.get_model()
-        entry_path = os.path.abspath(opjoin(os.path.dirname(self.fpath), '../../runner/inference.py'))
-        command_parts = [f'python3 {entry_path}', f'--load_checkpoint_dir {checkpoint_dir}', f'--model_name {self.model_name}', f'--dump_dir {self.request_dir}', f'--input_json_path {input_json_path}', f"--need_atom_confidence {self.request['atom_confidence']}", f"--use_msa {self.request['use_msa']}", '--num_workers 0']
-        if 'model_seeds' in self.request:
-            seeds = ','.join([str(seed) for seed in self.request['model_seeds']])
-            command_parts.extend([f'--seeds "{seeds}"'])
-        for key in ['N_sample', 'N_step']:
-            if key in self.request:
-                command_parts.extend([f'--sample_diffusion.{key} {self.request[key]}'])
-        if 'N_cycle' in self.request:
-            command_parts.extend([f"--model.N_cycle {self.request['N_cycle']}"])
-        if self.request.get('use_template', False):
-            command_parts.extend([f"--use_template {self.request.get('use_template', False)}"])
-        if self.request.get('use_tfg', False):
-            command_parts.extend([f"--sample_diffusion.guidance.enable {self.request.get('use_tfg', False)}"])
-        command = ' '.join(command_parts)
-        print(f'Launching inference process with the command below:\n{command}')
-        subprocess.call(command, shell=True)
+        raise RuntimeError("The upstream inference launcher is not included. Use oridynamic sample; see INSTALL.md.")

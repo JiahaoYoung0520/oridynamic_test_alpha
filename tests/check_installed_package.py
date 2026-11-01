@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT))
 def copy_source(destination):
     """仅向临时构建目录复制安装源码与公开示例，不带入权重或运行结果。"""
     destination.mkdir()
-    for name in ('README.md', 'INSTALL.md', 'LICENSE-PTX', 'requirements-inference.txt',
+    for name in ('README.md', 'INSTALL.md', 'LICENSE', 'LICENSE-PTX', 'NOTICE', 'THIRD_PARTY_NOTICES', 'requirements-inference.txt',
                  'pyproject.toml', 'MANIFEST.in'):
         shutil.copyfile(ROOT / name, destination / name)
     trees = {'oridynamic': {'.py'}, 'protenix': {'.py'}, 'runner': {'.py'},
@@ -51,8 +51,10 @@ def main():
         for required in ('oridynamic/cli.py', 'oridynamic/batch_runtime.py', 'oridynamic/complex_inputs.py', 'configs/inference_defaults.json',
                          'configs/base_diffusion_signature.json', 'protenix/model/modules/joint_ensemble.py'):
             assert required in names, required
+        for license_name in ('LICENSE', 'LICENSE-PTX', 'NOTICE', 'THIRD_PARTY_NOTICES'):
+            assert any(n.endswith('/licenses/' + license_name) for n in names), license_name
         assert not any(name.startswith(('runs/', 'inputs/', 'weights/', 'assets/', 'tests/', 'tools/'))
-                       or name.endswith(('.pt', '.npz', '.cif', '.pdb', '.xtc', '.hdf5')) for name in names)
+                       or name.endswith(('.ckpt', '.pt', '.npz', '.cif', '.pdb', '.xtc', '.hdf5')) for name in names)
         run([sys.executable, '-c', 'from setuptools.build_meta import build_sdist; build_sdist("dist")'], source)
         sdist, = (source / 'dist').glob('*.tar.gz')
         with tarfile.open(sdist) as archive:

@@ -31,7 +31,7 @@ class ResidentBatchTests(unittest.TestCase):
     def test_missing_msa_does_not_fallback_online(self):
         with tempfile.TemporaryDirectory() as tmp:
             a=self.args(Path(tmp))
-            with self.assertRaisesRegex(ValueError,'不会自动调用在线'):
+            with self.assertRaisesRegex(ValueError,'online search is not automatic'):
                 cli.load_targets(a)
             a.single_sequence=True
             self.assertEqual([r['msa_mode'] for r in cli.load_targets(a)], ['single_sequence']*2)
@@ -182,7 +182,7 @@ class ResidentBatchTests(unittest.TestCase):
             values=np.empty(len(atoms),dtype=object)
             values[:]=[SimpleNamespace(value='unsupported')]*len(atoms)
             atoms.set_annotation('custom_metadata',values)
-            with self.assertRaisesRegex(TypeError,'不支持的缓存对象'):
+            with self.assertRaisesRegex(TypeError,'Unsupported cache object'):
                 write_prepared(root,{},atoms,ids,torch.from_numpy(atoms.coord),(),contract)
             self.assertFalse((root/'prepared.pt').exists())
 

@@ -1,4 +1,4 @@
-"""只读部署检查：默认不导入Torch、不联网、不加载权重或创建缓存。"""
+"""Read-only deployment checks; no model loading or network access."""
 import argparse
 import importlib.metadata
 import importlib.util
@@ -14,17 +14,17 @@ from oridynamic import __version__
 def inspect(paths=None, assets_root=None, check_device=False):
     errors = []
     report = dict(version=__version__, python=sys.version.split()[0], platform=platform.system(),
-                  packages={}, resources={}, device="未检查；可显式--check-device")
-    if sys.version_info[:2] != (3, 11): errors.append("当前部署配方仅验收Python3.11")
-    if platform.system() != "Linux": errors.append("当前推理仅支持Linux/NVIDIA CUDA")
+                  packages={}, resources={}, device="Not checked; use --check-device explicitly")
+    if sys.version_info[:2] != (3, 11): errors.append("This deployment recipe supports Python 3.11")
+    if platform.system() != "Linux": errors.append("Inference currently supports Linux/NVIDIA CUDA")
     for package in ("torch", "numpy", "scipy", "pandas", "biotite", "rdkit", "ml-collections"):
         try: report['packages'][package] = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
-            report['packages'][package] = None; errors.append(f"缺少依赖：{package}")
+            report['packages'][package] = None; errors.append(f"Missing dependency: {package}")
     spec = importlib.util.find_spec('oridynamic.batch_predict')
     root = Path(spec.origin).resolve().parents[1] if spec and spec.origin else None
     report['runtime_root'] = str(root) if root else None
-    if root is None: errors.append("找不到本包batch_predict入口")
+    if root is None: errors.append("Cannot locate the installed batch_predict entry point")
     if paths:
         try:
             path = Path(paths).resolve(strict=True)
@@ -33,25 +33,25 @@ def inspect(paths=None, assets_root=None, check_device=False):
                 weight = Path(config[kind])
                 weight = (weight if weight.is_absolute() else path.parent / weight).resolve()
                 report['resources'][kind] = dict(path=str(weight), exists=weight.is_file())
-                if not weight.is_file(): errors.append(f"缺少{kind}权重：{weight}")
-        except (OSError, ValueError, KeyError, TypeError) as exc: errors.append(f"权重路径配置无效：{exc}")
-    else: report['resources']['weights'] = '未指定--paths/ORIDYNAMIC_PATHS，未验证'
+                if not weight.is_file(): errors.append(f"Missing {kind} checkpoint: {weight}")
+        except (OSError, ValueError, KeyError, TypeError) as exc: errors.append(f"Invalid checkpoint path configuration: {exc}")
+    else: report['resources']['weights'] = 'Not checked: specify --paths or ORIDYNAMIC_PATHS'
     if assets_root:
         for filename in ('common/components.cif', 'common/components.cif.rdkit_mol.pkl'):
             asset = Path(assets_root) / filename
             report['resources'][filename] = dict(path=str(asset.resolve()), exists=asset.is_file())
-            if not asset.is_file(): errors.append(f"缺少CCD资源：{asset}")
-    else: report['resources']['ccd'] = '未指定--assets-root/ORIDYNAMIC_ASSETS，未验证'
+            if not asset.is_file(): errors.append(f"Missing CCD resource: {asset}")
+    else: report['resources']['ccd'] = 'Not checked: specify --assets-root or ORIDYNAMIC_ASSETS'
     if check_device:
         try:
             import torch
             available = torch.cuda.is_available()
             report['device'] = dict(cuda_available=available, cuda_version=torch.version.cuda,
                                     count=torch.cuda.device_count() if available else 0)
-            if not available: errors.append("当前进程没有可用CUDA设备")
-        except ImportError as exc: errors.append(f"Torch导入失败：{exc}")
+            if not available: errors.append("No CUDA device is available to this process")
+        except ImportError as exc: errors.append(f"Torch import failed: {exc}")
     report.update(errors=errors, status='failed' if errors else 'preflight_only',
-                  limitations='只检查安装/路径；未验证权重schema/SHA、模型数值、显存容量或真实MSA搜索')
+                  limitations='Installation/path checks only; checkpoint schema/SHA, model numerics, GPU capacity, and MSA search are not validated')
     return report
 
 
@@ -59,7 +59,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog='oridynamic doctor', description=__doc__)
     p.add_argument('--paths', type=Path, default=os.environ.get('ORIDYNAMIC_PATHS'))
     p.add_argument('--assets-root', type=Path, default=os.environ.get('ORIDYNAMIC_ASSETS'))
-    p.add_argument('--check-device', action='store_true', help='显式导入Torch并查询CUDA；仍不加载模型')
+    p.add_argument('--check-device', action='store_true', help='Import Torch and query CUDA explicitly; no model loading')
     a = p.parse_args(argv)
     result = inspect(a.paths, a.assets_root, a.check_device)
     print(json.dumps(result, ensure_ascii=False, indent=2))

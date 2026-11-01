@@ -25,12 +25,12 @@ def _load_esm2_model(model_path):
         model, alphabet = pretrained.load_model_and_alphabet(os.path.splitext(os.path.basename(model_path))[0])
     return (model, alphabet)
 
-def load_esm_model(model_name, local_esm_dir='release_data/checkpoint'):
+def load_esm_model(model_name, local_esm_dir):
     local_model_path = os.path.join(local_esm_dir, ESM_CONFIG[model_name]['model_path'])
     if os.path.exists(local_model_path):
         print('Try to load ESM language model from ', local_model_path)
     if 'ism' in model_name and (not os.path.exists(local_model_path)):
-        raise RuntimeError(f'esm2-3b-ism model: {local_model_path} does not exist \n' + 'this model can not be download from fair-esm, \n' + 'download it from https://af3-dev.tos-cn-beijing.volces.com/release_model/esm2_t36_3B_UR50D_ism.pt')
+        raise RuntimeError(f'ESM-ISM weights are not distributed with this release: {local_model_path}. The supported OriDynamic inference profile has ESM disabled.')
     if model_name.startswith('esm2'):
         model, alphabet = _load_esm2_model(local_model_path)
     model.eval()

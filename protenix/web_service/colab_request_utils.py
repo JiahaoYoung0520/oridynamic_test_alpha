@@ -19,11 +19,16 @@ import time
 from typing import Dict, List, Tuple
 import requests
 from requests.auth import HTTPBasicAuth
+from urllib.parse import urlsplit
 from tqdm import tqdm
 TQDM_BAR_FORMAT = '{l_bar}{bar}| {n_fmt}/{total_fmt} [elapsed: {elapsed} estimate remaining: {remaining}]'
 logger = logging.getLogger(__name__)
-username = 'example_user'
-password = 'example_password'
+def service_auth():
+    username = os.environ.get('MSA_SERVICE_USERNAME')
+    password = os.environ.get('MSA_SERVICE_PASSWORD')
+    if bool(username) != bool(password):
+        raise ValueError('Set both MSA_SERVICE_USERNAME and MSA_SERVICE_PASSWORD, or neither')
+    return HTTPBasicAuth(username, password) if username else None
 
 def parse_fasta_string(fasta_string: str) -> Dict:
     fasta_dict = {}
@@ -37,8 +42,10 @@ def parse_fasta_string(fasta_string: str) -> Dict:
     return fasta_dict
 
 def run_mmseqs2_service(x, prefix, use_env=True, use_filter=True, use_templates=False, filter=None, use_pairing=False, pairing_strategy='complete', host_url='https://api.colabfold.com', user_agent: str='', email: str='', server_mode: str='protenix') -> Tuple[List[str], List[str]]:
-    if server_mode == 'protenix':
-        assert host_url == 'https://protenix-server.com/api/msa'
+    if urlsplit(host_url).scheme not in ('http', 'https') or not urlsplit(host_url).hostname:
+        raise ValueError('MSA service URL must be an HTTP(S) endpoint')
+    host_url = host_url.rstrip('/')
+    auth = service_auth()
     submission_endpoint = 'ticket/pair' if use_pairing else 'ticket/msa'
     headers = {}
     if user_agent != '':
@@ -51,12 +58,15 @@ def run_mmseqs2_service(x, prefix, use_env=True, use_filter=True, use_templates=
         for seq in seqs:
             query += f'{seq}\n'
             n += 1
+        error_count = 0
         while True:
-            error_count = 0
             try:
-                res = requests.post(f'{host_url}/{submission_endpoint}', data={'q': query, 'mode': mode, 'email': email}, timeout=6.02, headers=headers, auth=HTTPBasicAuth(username, password))
+                res = requests.post(f'{host_url}/{submission_endpoint}', data={'q': query, 'mode': mode, 'email': email}, timeout=6.02, headers=headers, auth=auth)
             except requests.exceptions.Timeout:
                 logger.warning('Timeout while submitting to MSA server. Retrying...')
+                error_count += 1
+                if error_count > 5:
+                    raise
                 continue
             except Exception as e:
                 error_count += 1
@@ -75,12 +85,15 @@ def run_mmseqs2_service(x, prefix, use_env=True, use_filter=True, use_templates=
         return out
 
     def status(ID):
+        error_count = 0
         while True:
-            error_count = 0
             try:
-                res = requests.get(f'{host_url}/ticket/{ID}', timeout=6.02, headers=headers, auth=HTTPBasicAuth(username, password))
+                res = requests.get(f'{host_url}/ticket/{ID}', timeout=6.02, headers=headers, auth=auth)
             except requests.exceptions.Timeout:
                 logger.warning('Timeout while fetching status from MSA server. Retrying...')
+                error_count += 1
+                if error_count > 5:
+                    raise
                 continue
             except Exception as e:
                 error_count += 1
@@ -102,9 +115,12 @@ def run_mmseqs2_service(x, prefix, use_env=True, use_filter=True, use_templates=
         error_count = 0
         while True:
             try:
-                res = requests.get(f'{host_url}/result/download/{ID}', timeout=6.02, headers=headers, auth=HTTPBasicAuth(username, password))
+                res = requests.get(f'{host_url}/result/download/{ID}', timeout=6.02, headers=headers, auth=auth)
             except requests.exceptions.Timeout:
                 logger.warning('Timeout while fetching result from MSA server. Retrying...')
+                error_count += 1
+                if error_count > 5:
+                    raise
                 continue
             except Exception as e:
                 error_count += 1
@@ -177,7 +193,7 @@ def run_mmseqs2_service(x, prefix, use_env=True, use_filter=True, use_templates=
                     raise Exception('MMseqs2 API is giving errors. Please confirm your input is a valid protein sequence. If error persists, please try again an hour later.')
             download(ID, tar_gz_file)
             with tarfile.open(tar_gz_file) as tar_gz:
-                tar_gz.extractall(os.path.dirname(tar_gz_file))
+                tar_gz.extractall(os.path.dirname(tar_gz_file), filter='data')
             files = os.listdir(os.path.dirname(tar_gz_file))
             if server_mode == 'protenix':
                 if '0.a3m' not in files or 'pdb70_220313_db.m8' not in files or 'uniref_tax.m8' not in files:

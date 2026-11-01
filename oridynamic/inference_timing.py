@@ -30,12 +30,12 @@ class TimingLog:
     @contextmanager
     def stage(self, name, *, gpu=False, **details):
         if gpu and self.sync is None:
-            raise RuntimeError('GPU计时未配置同步函数')
+            raise RuntimeError('GPU timing requires a synchronization callback')
         if gpu:
             self.sync()
         started = time.perf_counter()
         label = ' '.join(f'{k}={v}' for k, v in details.items())
-        print(f'[计时开始] {name} {label}', flush=True)
+        print(f'[Timing start] {name} {label}', flush=True)
         status = 'complete'
         try:
             yield
@@ -49,7 +49,7 @@ class TimingLog:
             entry = dict(stage=name, seconds=seconds, status=status, cuda_synchronized=gpu, **details)
             self.data['stages'].append(entry)
             self._save()
-            print(f'[计时] {name} {label} 耗时={seconds:.3f}s 状态={status}', flush=True)
+            print(f'[Timing] {name} {label} elapsed={seconds:.3f}s status={status}', flush=True)
 
     def finish(self, status, *, total_samples=0, **details):
         seconds = sum(e['seconds'] for e in self.data['stages']
@@ -64,6 +64,6 @@ class TimingLog:
         temp = self.path.with_suffix('.json.tmp')
         temp.write_text(json.dumps(self.data, ensure_ascii=False, indent=2, allow_nan=False) + '\n')
         os.replace(temp, self.path)
-        print(f'[计时汇总] 状态={status} 总墙钟={self.data["wall_seconds"]:.3f}s '
-              f'系综生成={seconds:.3f}s 样本数={total_samples}；详细记录={self.path}', flush=True)
+        print(f'[Timing summary] status={status} wall_time={self.data["wall_seconds"]:.3f}s '
+              f'ensemble_generation={seconds:.3f}s samples={total_samples}; details={self.path}', flush=True)
         return self.data

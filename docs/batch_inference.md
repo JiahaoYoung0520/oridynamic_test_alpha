@@ -47,6 +47,8 @@ python -B -u -m oridynamic \
   --seeds 0,1 --samples-per-seed 8 --out runs/local_batch_v1
 ```
 
+Local search defaults to CPU. Add `--msa-device gpu` to use a compatible GPU-enabled ColabFold/MMseqs2 installation; GPU visibility follows `CUDA_VISIBLE_DEVICES`.
+
 You can also supply `--msa-dir`: existing alignments are reused, and only missing ones are searched. The wrapper invokes the search tool separately for each target; it does not guarantee a single database load. Search completes before model loading. Temporary files stay within the new run directory, and public databases are read-only. A failed search stops the run.
 
 See [INSTALL.md](../INSTALL.md) for local installation, CPU/GPU search, and the separate search container. Online search is a separate preparation step described in the [online MSA guide](msa_online.md). `--single-sequence` is an explicit query-only smoke-test option, not a substitute for MSA-based quality evaluation.
@@ -60,7 +62,9 @@ See [INSTALL.md](../INSTALL.md) for local installation, CPU/GPU search, and the 
 
 The base preparation phase must finish before `build_joint()` modifies the native model. Each target still requires its own forward passes. By default, four anchor candidates are generated and the native ranking score selects one; all final samples use that anchor. `--anchor-candidates 1` changes this budget explicitly.
 
-Models remain in the process, with CPU/GPU offloading between phases and intermediate tensors released between targets. The defaults `--sample-chunk-size 1` and `--attention-chunk-size 32` limit working memory, but do not guarantee support for arbitrary lengths on smaller GPUs. Frozen context caches grow quadratically with token count, so reserve output-disk space accordingly. Caches are specific to each run.
+Models remain in the process, with CPU/GPU offloading between phases and intermediate tensors released between targets. The defaults `--sample-chunk-size 1` and `--attention-chunk-size 32` limit working memory, but do not guarantee support for arbitrary lengths on smaller GPUs. The pair-context tensors in each run-specific `prepared.pt` grow quadratically with token count, so reserve output-disk space accordingly. They are not a shared cache across runs.
+
+Additional controls include `--anchor-seed` (default 101), `--device` (default `cuda:0`), `--dtype` (`bf16` or `fp32`, default `bf16` for trunk/codec/DiT), and `--attention-backend` (`torch` by default; `cuequivariance` requires separately installed compatible extensions). These do not replace the checkpoint-bound flow/refiner sampling configuration.
 
 ## Outputs and timing
 
@@ -71,12 +75,15 @@ Models remain in the process, with CPU/GPU offloading between phases and interme
 | `ensemble.cif`, `proposals.cif` | Final conformations and decoded proposals for the target |
 | `seed_*.pt` | Per-seed tensors |
 | `run_metadata.json`, `completion.json` | Target configuration, provenance, and completion status |
-| `progress.json` | Current phase and target position |
+| `request.json`, `progress.json` | Validated batch request and current phase/target position |
+| `failure.json` | Failure information, written only when a run fails |
+| `targets/<name>/input.json`, `resolved_config.json`, `native/` | Per-target native input, resolved model configuration, and native intermediate outputs |
+| `targets/<name>/chains/<chain>/msa/` | Per-chain local-search alignments and provenance when local search is used |
 | `summary.json` | Shared initialization, per-target timings, and model-load counts |
 | `timing.json` | Overall wall time and separately recorded stages |
 | `anchor_phase/timing.json`, `ensemble_phase/timing.json` | Per-target phase timing |
 
-Each ensemble/proposal CIF combines samples from all requested seeds. The final count per target is the number of seeds multiplied by `--samples-per-seed`. Chunk size controls how many samples are processed together, not the total count; changing chunk size does not guarantee bitwise-identical stochastic samples.
+Each ensemble/proposal CIF combines samples from all requested seeds. The final count per target is the number of seeds multiplied by `--samples-per-seed`. Chunk size controls how many samples are processed together, not the total count; changing chunk size changes the assignment of intermediate SDE noise draws and can produce different conformations. Even with the same seed and chunk size, identical GPU coordinates are not guaranteed. See [reproducibility notes](model_card.md#reproducibility).
 
 Overall wall time includes local MSA search. `inference_wall_seconds_excluding_msa` starts after search and includes initialization, model forward passes, and output writing. Per-target timing excludes time spent waiting for other targets. `ensemble_seed` is nested within `ensemble_target`; do not add both when aggregating elapsed time.
 
@@ -86,6 +93,6 @@ Cache writing converts NumPy scalar metadata to Python built-in types; reading r
 
 ## Validation scope
 
-CPU tests cover the lifecycle, mixed MSA routing, atom identities, restricted cache serialization, and repeated sampling with small real codec/DiT/diffusion modules. The five-target GPU smoke test has also completed, generating ten final conformations with one base, codec, and Joint load per batch.
+CPU tests cover the lifecycle, mixed MSA routing, atom identities, restricted cache serialization, and repeated sampling with small real codec/DiT/diffusion modules. The author-supplied H20 report records ten final conformations from five bundled MSA targets using Joint200, with one base, codec, and Joint load per batch. This is reported execution evidence; see [model notes](model_card.md#validation-and-scope) for its scope and the distinction from earlier Joint11500 tests.
 
 Matched single-target/batch comparisons, full local-database searches, lower-memory GPUs, and formal speed or quality benchmarks require separate validation. The interface organization was informed by [BioEmu2](https://github.com/microsoft/bioemu2); its implementation, training procedure, sampling protocol, and license were not copied.

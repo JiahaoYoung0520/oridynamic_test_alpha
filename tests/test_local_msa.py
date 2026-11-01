@@ -67,7 +67,7 @@ else:
         report = json.loads((self.args.out / "msa/search.json").read_text())
         self.assertEqual((report["status"], report["n_records"]), ("complete", 2))
         self.assertEqual(before, {p.name: p.read_bytes() for p in self.database.iterdir()})
-        with self.assertRaisesRegex(ValueError, "拒绝"):
+        with self.assertRaisesRegex(ValueError, "refusing"):
             run_search(self.args, self.args.out / "msa")
 
     def test_failure_no_fallback(self):
@@ -93,7 +93,7 @@ else:
 
     def test_missing_database_and_executable(self):
         self.args.msa_search_executable = str(self.root / "absent")
-        with self.assertRaisesRegex(ValueError, "未找到"):
+        with self.assertRaisesRegex(ValueError, "Executable not found"):
             preflight(self.args)
         self.args.msa_search_executable = str(self.binary)
         self.args.msa_env_db = "wrong"
@@ -101,14 +101,14 @@ else:
             preflight(self.args)
 
     def test_output_under_database_and_broken_symlink_rejected(self):
-        with self.assertRaisesRegex(ValueError, "数据库目录内"):
+        with self.assertRaisesRegex(ValueError, "inside the database directory"):
             run_search(self.args, self.database / "bad")
         link = self.root / "broken"
         link.symlink_to(self.root / "not_created")
-        with self.assertRaisesRegex(ValueError, "拒绝"):
+        with self.assertRaisesRegex(ValueError, "refusing"):
             run_search(self.args, link)
         self.args.out = self.database / "inference"
-        with self.assertRaisesRegex(ValueError, "数据库目录内"):
+        with self.assertRaisesRegex(ValueError, "inside the database directory"):
             preflight(self.args)
         self.assertFalse(self.args.out.exists())
 
@@ -120,7 +120,7 @@ else:
             validate_modes(args)
         args.msa_a3m = None
         args.check = True
-        with self.assertRaisesRegex(ValueError, "不搜索"):
+        with self.assertRaisesRegex(ValueError, "does not search"):
             validate_modes(args)
 
     def test_environment_isolation(self):

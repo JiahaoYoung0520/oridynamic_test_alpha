@@ -12,7 +12,7 @@ COPY protenix ./protenix
 COPY runner ./runner
 COPY configs ./configs
 COPY examples ./examples
-COPY LICENSE LICENSE-PTX NOTICE README.md INSTALL.md pyproject.toml MANIFEST.in ./
+COPY LICENSE LICENSE-PTX NOTICE THIRD_PARTY_NOTICES README.md INSTALL.md pyproject.toml MANIFEST.in ./
 RUN python -m pip install --no-cache-dir "setuptools>=77" wheel \
     && python -m pip install --no-deps --no-build-isolation .
 ENV PYTHONDONTWRITEBYTECODE=1 LAYERNORM_TYPE=torch PROTENIX_DISABLE_FUSED_LN=1
