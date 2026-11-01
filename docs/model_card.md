@@ -27,26 +27,3 @@ The released model uses the same LoRA-adapted trunk context for the frozen autoe
 | TF32 | Disabled |
 
 Final conformations per target equal the number of seeds multiplied by `--samples-per-seed`. See the [batch guide](batch_inference.md) for sampling controls and output files.
-
-## Model scope
-
-The alpha checkpoint received additional adaptation on monomer and protein–ligand systems from the original test split; results on those systems are not independent held-out evaluation. Protein–protein systems were not included in this additional adaptation.
-
-Generated conformations form an unordered ensemble. They do not provide physical transition times or calibrated basin populations. CIF B-factors are placeholders, not pLDDT or RMSF.
-
-## Reproducibility
-
-Record checkpoint hashes, inputs and MSAs, seeds, chunk sizes, attention backend, precision, and software/hardware versions. Matching seeds do not guarantee identical GPU coordinates. Changing `--sample-chunk-size` changes the assignment of intermediate SDE noise draws and can change individual conformations; keep it fixed when comparing samples.
-
-## Checkpoint identity
-
-<details>
-<summary>File sizes and SHA-256 checksums</summary>
-
-| File | Bytes | SHA-256 |
-| :--- | ---: | :--- |
-| `ae.ckpt` | 813638719 | `950ca1971e9b86d3c5560df694328d389877722569ddc40e0a48d6e11ac5e0ea` |
-| `oridynamic.ckpt` | 948744621 | `3719e2eb8465d21116b0442702132a2f95ff5ae9792edba265fd21271228c9ad` |
-| `protenix_base_default_v1.0.0.pt` (official external dependency) | 1475950125 | `2b7d5a8b30494514fc47fd2271a16260528cdba170ba09cc112fdecd8f85ec04` |
-
-</details>

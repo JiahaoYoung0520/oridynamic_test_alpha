@@ -101,7 +101,7 @@ export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
 export ORIDYNAMIC_ASSETS="$PWD/assets"
 ```
 
-`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. Checkpoint sizes and SHA-256 hashes are recorded in the [model notes](docs/model_card.md#checkpoint-identity).
+`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself.
 
 For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory.
 

@@ -83,7 +83,7 @@ All paths below are relative to the directory passed to `--out`.
 
 For JSON inputs, protein queries and alignments are stored under `targets/<name>/chains/<first_entity_chain_id>/`: `query.fasta`, copied `provided.a3m`/`paired.a3m`, or query-only `query.a3m`, depending on the selected MSA mode. Local search creates `msa/unpaired.a3m` and `msa/search.json` there. For FASTA/manifest inputs, the same files are directly under `targets/<name>/`. Homomeric copies of one protein entity share its alignment. `input_fingerprints.json` is written within the target directory only with `--trace-inputs`.
 
-Each ensemble/proposal CIF combines samples from all requested seeds. The final count per target is the number of seeds multiplied by `--samples-per-seed`. Chunk size controls how many samples are processed together, not the total count; changing chunk size changes the assignment of intermediate SDE noise draws and can produce different conformations. Even with the same seed and chunk size, identical GPU coordinates are not guaranteed. See [reproducibility notes](model_card.md#reproducibility).
+Each ensemble/proposal CIF combines samples from all requested seeds. The final count per target is the number of seeds multiplied by `--samples-per-seed`. Chunk size controls how many samples are processed together without changing the total count.
 
 Overall wall time includes local MSA search. `inference_wall_seconds_excluding_msa` starts after search and includes initialization, model forward passes, and output writing. Per-target timing excludes time spent waiting for other targets. `ensemble_seed` is nested within `ensemble_target`; do not add both when aggregating elapsed time.
 
