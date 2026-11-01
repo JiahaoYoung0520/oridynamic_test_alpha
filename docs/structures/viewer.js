@@ -7,7 +7,9 @@
   const viewers = [];
   const models = [[], []];
   const cache = new Map();
-  const state = {data:null, target:null, ready:false, spinning:false, request:0};
+  const state = {data:null, target:null, ready:false, spinning:false, playing:false, sampleIndex:0, request:0};
+  const styleKeys = new WeakMap();
+  let playTimer = null;
   let syncing = false;
   let homeView = null;
   const colors = [
@@ -22,7 +24,7 @@
   }
   function busy(value) {
     state.ready = !value;
-    for (const id of ['conformation','view-mode','rotate','reset']) byId(id).disabled = value;
+    for (const id of ['conformation','view-mode','rotate','reset','play','speed']) byId(id).disabled = value;
     document.querySelectorAll('#cases button').forEach(b => { b.disabled = value; });
   }
   function loadData(id) {
@@ -71,6 +73,8 @@
         }));
         const model = viewers[k].addModel();
         model.addAtoms(atoms);
+        model.setStyle({},{});
+        model.hide();
         return model;
       });
     });
@@ -79,13 +83,17 @@
     const data = state.data;
     const all = byId('conformation').value === 'all';
     const chosen = all ? 0 : Number(byId('conformation').value);
+    const overlay = new Set(Array.from({length:Math.min(8,data.count)},(_,i)=>Math.round(i*(data.count-1)/7)));
+    if (!all) state.sampleIndex=chosen;
     const pocket = data.ligand && byId('view-mode').value === 'pocket';
     groups.forEach((group,k) => {
       models[k].forEach((model,i) => {
-        model.setStyle({},{});
-        if (!all && i !== chosen) { model.hide(); return; }
+        if (all ? !overlay.has(i) : i !== chosen) { model.hide(); return; }
         model.show();
         const faint = all && i !== 0;
+        const key = `${pocket}:${faint}`;
+        if (styleKeys.get(model) === key) return;
+        model.setStyle({},{});
         const color = faint ? colors[k].faint : colors[k].main;
         if (!pocket) {
           const cartoon = faint ? {style:'trace',thickness:.10,opacity:.4,color} : {color,arrows:true};
@@ -98,17 +106,37 @@
           model.setStyle({index:data.groups[group][i].pocket}, {stick:{radius:.10,color:'#B8C0CD'}});
         }
         if (data.ligand) model.setStyle({hetflag:true}, {stick:{radius:faint ? .10 : .20,color}});
+        styleKeys.set(model,key);
       });
       viewers[k].render();
     });
-    byId('display-info').textContent = all ? '8 sampled conformations per ensemble' :
-      (chosen === 0 ? 'Representative conformations' : `Conformation ${chosen+1} from each ensemble`);
+    byId('display-info').textContent = all ? `8 overlaid samples · ${data.count} available per ensemble` :
+      `Sample ${chosen+1} / ${data.count} from each ensemble`;
     byId('caption').textContent = (pocket
       ? 'Ligands are shown in color; nearby protein residues are gray. '
-      : all ? 'Solid cartoons show representative conformations; lighter traces show additional samples. '
-      : 'Each view shows one sampled conformation. ')
+      : all ? 'Solid cartoons show representatives; lighter traces show seven additional samples. '
+      : 'Playback cycles through unordered ensemble samples. ')
       + 'Both views share the same alignment and scale.'
       + (data.id === 'A00C2' ? ' The partner chain is purple in OriDynamic and pale pink in GT.' : '');
+  }
+  function playSamples(on) {
+    clearTimeout(playTimer);playTimer=null;
+    state.playing=Boolean(on && state.ready);
+    byId('play').textContent=state.playing ? 'Ⅱ Pause samples' : '▶ Play samples';
+    byId('play').setAttribute('aria-pressed',String(state.playing));
+    if (!state.playing) return;
+    if (byId('conformation').value==='all') {
+      byId('conformation').value=String(state.sampleIndex);
+      styleModels();
+    }
+    function advance() {
+      if (!state.playing || !state.ready) return;
+      const started=performance.now();
+      byId('conformation').value=String((state.sampleIndex+1)%state.data.count);
+      styleModels();
+      playTimer=setTimeout(advance,Math.max(16,Number(byId('speed').value)-(performance.now()-started)));
+    }
+    playTimer=setTimeout(advance,Number(byId('speed').value));
   }
   function fitSharedView() {
     const data = state.data;
@@ -155,13 +183,13 @@
       viewers[0].spin('y',.5);
       if (!byId('linked').checked) viewers[1].spin('y',.5);
     }
-    byId('rotate').textContent = on ? 'Ⅱ Pause' : '↻ Rotate';
+    byId('rotate').textContent = on ? 'Ⅱ Pause spin' : '↻ Spin view';
     byId('rotate').setAttribute('aria-pressed',String(on));
   }
   async function selectCase(id) {
     const entry = catalog.find(c => c.id === id) || catalog[0];
     const request = ++state.request;
-    busy(true); spin(false); message(`Loading ${entry.id}…`);
+    playSamples(false); busy(true); spin(false); message(`Loading ${entry.id}…`);
     byId('target-name').textContent = entry.id;
     byId('target-info').textContent = `${entry.modality} · ${entry.source} · ${entry.size}`;
     byId('download').href = `downloads/${entry.id}.zip`;
@@ -172,10 +200,14 @@
       if (request !== state.request) return;
       createViewers();
       state.data=data; state.target=entry.id;
-      byId('conformation').value='all'; byId('view-mode').value='full';
+      const options=[new Option(`Overlay · 8 of ${data.count}`,'all')];
+      for (let i=0;i<data.count;i++) options.push(new Option(i===0 ? `Representative · 1 / ${data.count}` : `Sample ${i+1} / ${data.count}`,String(i)));
+      byId('conformation').replaceChildren(...options);
+      byId('conformation').value='0'; byId('view-mode').value='full';
       byId('pocket-control').hidden=!data.ligand;
       addModels(data); styleModels(); fitSharedView();
       busy(false); message('');
+      playSamples(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     } catch (err) {
       if (request !== state.request) return;
       state.ready=false;
@@ -194,7 +226,9 @@
     });
     byId('cases').appendChild(button);
   }
-  byId('conformation').addEventListener('change',() => { if (state.ready) styleModels(); });
+  byId('conformation').addEventListener('change',() => { if (state.ready) { playSamples(false); styleModels(); } });
+  byId('play').addEventListener('click',() => { if (state.ready) playSamples(!state.playing); });
+  byId('speed').addEventListener('change',() => { if (state.playing) playSamples(true); });
   byId('view-mode').addEventListener('change',() => {
     if (!state.ready) return;
     spin(false); styleModels(); fitSharedView();
@@ -208,7 +242,7 @@
     if (byId('linked').checked && viewers.length===2) viewers[1].setView(viewers[0].getView(),true);
     spin(state.spinning);
   });
-  document.addEventListener('visibilitychange',() => { if (document.hidden) spin(false); });
+  document.addEventListener('visibilitychange',() => { if (document.hidden) { spin(false); playSamples(false); } });
   const fromHash=() => selectCase(new URLSearchParams(location.hash.slice(1)).get('case'));
   window.addEventListener('hashchange',fromHash);
   // Expose the visible state for reproducible browser checks and inspection.

@@ -23,7 +23,7 @@
     <div class="intro">
       <p class="eyebrow">Explore the ensemble</p>
       <h1>Structures you can explore.</h1>
-      <p>Rotate, zoom, and compare generated conformations with their MD reference ensembles.</p>
+      <p>Play through ensemble samples, rotate the structures, and compare with MD references.</p>
     </div>
     <div id="cases" class="case-tabs" role="group" aria-label="Choose a molecular system"></div>
     <section class="explorer" aria-label="Interactive structure comparison">
@@ -33,24 +33,18 @@
       </div>
       <div class="toolbar">
         <label class="select-label">Show
-          <select id="conformation" disabled>
-            <option value="all">Ensemble · 8 conformations</option>
-            <option value="0">Representative</option>
-            <option value="1">Conformation 2</option>
-            <option value="2">Conformation 3</option>
-            <option value="3">Conformation 4</option>
-            <option value="4">Conformation 5</option>
-            <option value="5">Conformation 6</option>
-            <option value="6">Conformation 7</option>
-            <option value="7">Conformation 8</option>
-          </select>
+          <select id="conformation" disabled><option value="0">Loading samples…</option></select>
         </label>
         <label id="pocket-control" class="select-label" hidden>View
           <select id="view-mode" disabled><option value="full">Full complex</option><option value="pocket">Ligand pocket</option></select>
         </label>
         <div class="view-tools">
+          <button id="play" type="button" aria-pressed="false" disabled>▶ Play samples</button>
+          <select id="speed" aria-label="Sample playback speed" disabled>
+            <option value="320">Slow</option><option value="160" selected>Normal</option><option value="90">Fast</option>
+          </select>
           <label class="check-label"><input id="linked" type="checkbox" checked> Link views</label>
-          <button id="rotate" type="button" aria-pressed="false" disabled>↻ Rotate</button>
+          <button id="rotate" type="button" aria-pressed="false" disabled>↻ Spin view</button>
           <button id="reset" type="button" disabled>Reset view</button>
         </div>
       </div>
@@ -67,10 +61,10 @@
       </div>
       <div class="viewer-footer">
         <span>Drag to rotate · Scroll or pinch to zoom · Right-drag to pan</span>
-        <span id="display-info">8 sampled conformations per ensemble</span>
+        <span id="display-info">40 sampled conformations per ensemble</span>
       </div>
     </section>
-    <p id="caption" class="caption">Solid cartoons show representative conformations; lighter traces show additional samples. Both views share the same alignment and scale.</p>
+    <p id="caption" class="caption">Playback cycles through unordered ensemble samples. Both views share the same alignment and scale.</p>
     <noscript><p>Enable JavaScript to explore the structures, or download the <a href="downloads/6odd_B.zip">PyMOL files</a>.</p></noscript>
   </main>
   <footer class="page-footer">

@@ -4,6 +4,16 @@
 
 **Understanding biomolecular dynamics is a key step toward biological intelligence.**
 
+<a id="structure-explorer"></a>
+<p>
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/#case=6odd_B"><img src="docs/structures/previews/6odd_B.gif" alt="6odd_B: 40 generated samples, 74 residues" width="160"></a>
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/#case=7e2s_A"><img src="docs/structures/previews/7e2s_A.gif" alt="7e2s_A: 40 generated samples, 233 residues" width="160"></a>
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/#case=6l3r_E"><img src="docs/structures/previews/6l3r_E.gif" alt="6l3r_E: 40 generated samples, 669 residues" width="160"></a>
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/#case=2K0G"><img src="docs/structures/previews/2K0G.gif" alt="2K0G: 40 generated samples, protein–ligand complex" width="160"></a>
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/#case=A00C2"><img src="docs/structures/previews/A00C2.gif" alt="A00C2: 40 generated samples, protein–protein assembly" width="160"></a>
+</p>
+<sub>40 generated samples per system · Click a structure to play samples, rotate freely, and compare with GT.</sub>
+
 [![Beta release: 0.1.0b0](docs/images/release.svg)](pyproject.toml)
 [![Apache-2.0 license](docs/images/license.svg)](LICENSE)
 
@@ -21,19 +31,7 @@ OriDynamic generates all-atom conformational ensembles for protein monomers, pro
 
 The [five bundled examples](#quick-start) include matching MSAs and cover all three system types. Multiple systems can be processed in one run, with models loaded once per batch.
 
-<a id="structure-explorer"></a>
-
-## 🔬 Explore generated ensembles
-
-Compare OriDynamic structures with MD references across **five selected systems**, from a 74-residue monomer to a 669-residue protein, plus protein–ligand and protein–protein complexes.
-
-<a href="https://JiahaoYoung0520.github.io/oridynamic_test/"><img src="docs/structures/preview.gif" alt="GT and OriDynamic ensembles of 6odd_B, rotating side by side" width="760"></a>
-
-**[Open the interactive 3D viewer →](https://JiahaoYoung0520.github.io/oridynamic_test/)**
-
-Drag to rotate, scroll to zoom, and switch between the ensemble, individual conformations, and the ligand pocket. Both views move together. Use **PyMOL + PDB** in the viewer to download the selected system for local exploration.
-
-For offline viewing, open `docs/structures/index.html` from a clone of this repository in your browser.
+The [structure explorer](https://JiahaoYoung0520.github.io/oridynamic_test/) supports sample playback, free rotation, GT comparison, and PyMOL/PDB downloads. For offline viewing, open `docs/structures/index.html` from a clone of this repository.
 
 <a id="installation"></a>
 

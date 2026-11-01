@@ -36,7 +36,7 @@ h2 { margin:0; font-size:22px; }
 select { padding:7px 9px; max-width:100%; font-size:13px; }
 .view-tools { margin-left:auto; display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .view-tools button { font-size:13px; padding:7px 12px; }
-#rotate[aria-pressed="true"] { color:var(--blue); border-color:#8aaedb; background:#edf3fc; }
+#rotate[aria-pressed="true"],#play[aria-pressed="true"] { color:var(--blue); border-color:#8aaedb; background:#edf3fc; }
 .check-label { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--muted); margin-right:10px; white-space:nowrap; }
 input { accent-color:var(--blue); }
 #status { text-align:center; color:var(--muted); background:#f4f7fc; padding:10px; font-size:13px; }
