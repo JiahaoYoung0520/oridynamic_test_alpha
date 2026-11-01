@@ -4,7 +4,7 @@ OriDynamic supports editable installation with `python -m pip install -e .` and 
 
 Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. The two OriDynamic weights are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0); the Protenix base and CCD resources are obtained from the official Protenix distribution. Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
 
-Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems. Keep other Protenix installations and research worktrees out of this environment's `PYTHONPATH`.
+Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems.
 
 ## Batch inference
 
@@ -22,7 +22,7 @@ docker run --rm --network none --gpus device=0 \
   --fasta /input/sequences.fasta --msa-dir /input/msas --out /output/run
 ```
 
-The inference image does not include MSA databases or search tools. Generate MSAs with a separate search container, or install ColabFold/MMseqs2 in the inference environment and mount the databases for automatic local search. The new Docker build recipe has not yet been independently validated.
+The inference image does not include MSA databases or search tools. Generate MSAs with a separate search container, or install ColabFold/MMseqs2 in the inference environment and mount the databases for automatic local search.
 
 ## 1. Inference environment
 
@@ -48,11 +48,11 @@ Alternatively, build the supplied inference image from this repository:
 docker build -f docker/Dockerfile.inference -t oridynamic-inference:local .
 ```
 
-The default Torch backend does not require compiling fused LayerNorm. The optional cuequivariance backend requires compatible extensions and explicit selection. Successful inference in an existing environment does not validate a newly built Docker image.
+The default Torch backend does not require compiling fused LayerNorm. The optional cuequivariance backend requires compatible extensions and explicit selection.
 
 ## 2. Model weights and CCD
 
-Download the OriDynamic autoencoder and joint weights from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0), then obtain **Protenix base v1.0.0** from the official upstream URL. Our Hugging Face repository distributes only the two OriDynamic checkpoints; no login or invitation is required.
+Download the OriDynamic autoencoder and joint weights from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0), then obtain **Protenix base v1.0.0** from the official upstream URL.
 
 ```bash
 mkdir -p weights assets/common
@@ -81,9 +81,7 @@ assets/common/
   components.cif.rdkit_mol.pkl
 ```
 
-Use the exact official Protenix v1.0.0 file and the matching OriDynamic exports. The official file is accepted only with the pinned SHA-256 above; a same-named file from another model version is not interchangeable. The loader checks export schemas, base/codec compatibility, architecture, and Joint parameter sets using restricted deserialization. OriDynamic exports retain model parameters, inference configuration, and latent normalization statistics without optimizer state or research data.
-
-Earlier installations using the verified OriDynamic-wrapped Protenix v1 base remain compatible. For a fresh install, use the official file above. Renaming an arbitrary checkpoint does not make it compatible.
+Use the official Protenix v1.0.0 file with the SHA-256 shown above and the matching OriDynamic checkpoints. The loader checks checkpoint compatibility before sampling.
 
 Download both CCD files from the official URLs used by this release. The inference runtime does not fetch them automatically:
 
@@ -103,13 +101,13 @@ export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
 export ORIDYNAMIC_ASSETS="$PWD/assets"
 ```
 
-`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. Checkpoint sizes, SHA-256 hashes, and the verified code revision are recorded in the [model notes](docs/model_card.md#checkpoint-identity). No separate manifest file is required for inference.
+`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. Checkpoint sizes and SHA-256 hashes are recorded in the [model notes](docs/model_card.md#checkpoint-identity).
 
-For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains OriDynamic weights and documentation; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
+For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory.
 
-## 3. Checks and GPU smoke tests
+## 3. Optional environment check
 
-`oridynamic doctor` is an optional, read-only diagnostic command. It checks Python/platform support, installed package versions, and checkpoint/CCD file paths supplied through the environment variables above or explicit arguments. Add `--check-device` to query CUDA availability. It does not download resources, load models, verify checkpoint contents, or run inference, and it is not a required step before sampling.
+After activating the environment and setting the resource paths, use `oridynamic doctor` to check installed dependencies and checkpoint/CCD paths. Add `--check-device` to query CUDA availability. This command does not load the models or run inference.
 
 ```bash
 oridynamic doctor
@@ -117,30 +115,7 @@ oridynamic doctor
 oridynamic doctor --check-device
 ```
 
-These commands assume the activated environment and resource variables from sections 1–2. The test suite and example files are in the Git checkout. Each check or inference run needs a new output directory.
-
-```bash
-python -B -m unittest discover -s tests -v
-python -B -m oridynamic.predict --fasta examples/monomer.fasta --single-sequence \
-  --check --out checks/new_install
-CUDA_VISIBLE_DEVICES=0 python -B -u -m oridynamic.predict \
-  --fasta examples/monomer.fasta --single-sequence --anchor-candidates 1 \
-  --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out runs/quick_smoke_v1
-```
-
-After building the inference image, use an available GPU and a new output directory for a container smoke test:
-
-```bash
-mkdir new_ensemble_output
-docker run --rm --network none --gpus device=0 \
-  -v /absolute/path/weights:/weights:ro -v /absolute/path/assets:/assets:ro \
-  -v "$PWD/new_ensemble_output:/output" oridynamic-inference:local \
-    --paths /opt/oridynamic/configs/container_paths.example.json --assets-root /assets \
-    --fasta /opt/oridynamic/examples/monomer.fasta --single-sequence --anchor-candidates 1 \
-    --seeds 0,1 --samples-per-seed 2 --sample-chunk-size 1 --out /output/run
-```
-
-An author-supplied H20 deployment report dated 2026-11-01 records successful execution with the current model on the five bundled MSA examples (three monomers, one PL complex, one PP assembly), producing ten final conformations. It used an existing dependency image, not a fresh build of the public Dockerfile. See [model notes](docs/model_card.md) for the evidence and its limits. Use normal MSA inputs for quality evaluation. Chunking and CPU offloading reduce memory use, but no sequence-length guarantees are established for 24 GB or 48 GB GPUs.
+Run the [bundled examples](examples/README.md) to generate your first ensembles. GPU memory use depends on system size, attention settings, and sample chunk size.
 
 ## 4. Local MSA search with ColabFold/MMseqs2
 
@@ -185,12 +160,10 @@ oridynamic msa --fasta examples/monomer.fasta --out runs/msa_check \
 
 See the [README](README.md#msa-options) for search followed by inference in one command. Search defaults to CPU with 16 threads; GPU search must be selected explicitly with `--msa-device gpu` (the default is `--msa-device cpu`). Search completes before model loading. The wrapper does not start a persistent GPU server, search templates, or modify databases.
 
-Database checks inspect the `dbtype` markers, rather than hashing the complete databases. The query sequence and alignment columns are validated before inference. A failed search stops the run; there is no automatic fallback to an online service or query-only input. A full local-database search still requires end-to-end validation.
+Database checks inspect the `dbtype` markers, rather than hashing the complete databases. The query sequence and alignment columns are validated before inference. A failed search stops the run; there is no automatic fallback to an online service or query-only input.
 
 The [batch guide](docs/batch_inference.md#outputs-and-timing) defines search and inference timing separately. Online search also includes networking, queueing, and service-side caching, so its timing should be reported separately from local search.
 
-## 5. Sources and scope
+## License
 
-OriDynamic inference code and its autoencoder and joint-model inference weights are released under [Apache-2.0](LICENSE), with copyright held by LGLab Frontier AI Group for its contributions. The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX), [NOTICE](NOTICE), and [source attribution](docs/SOURCES.md). Third-party dependencies, external weights, and public databases retain their respective terms.
-
-The Git checkout includes inference modules, documentation, six example MSAs, tests, and the Docker/MSA helper scripts. A built wheel contains the Python modules and packaged configuration JSON files; it does not bundle the examples, documentation, tests, or shell helpers. Keep the checkout for the documented examples and checks. Model weights and CCD resources are downloaded separately. Full MSA databases, training code, and MD datasets are not included. User inputs, search results, and generated structures stay in the output directory.
+OriDynamic is released under [Apache-2.0](LICENSE). See [NOTICE](NOTICE), [LICENSE-PTX](LICENSE-PTX), and [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES) for attribution and third-party terms.

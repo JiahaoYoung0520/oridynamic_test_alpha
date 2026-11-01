@@ -49,8 +49,4 @@ An `anchor.cif` produced by this entry point can be reused directly. Homomeric c
 
 Without a supplied structure, Protenix predicts the entire complex from its protein and ligand inputs. The native `ranking_score` selects the anchor. The resulting `anchor.cif`, `proposals.cif`, and `ensemble.cif` include every chain and ligand, with identity and coordinate checks on readback.
 
-## Validation scope
-
-Monomer, PL, and PP inputs use the same released `ae.ckpt` / `oridynamic.ckpt` pair; there is no per-modality checkpoint selection in this CLI. The joint model received additional adaptation on monomer and PL systems. PP was not included in that adaptation. See [model notes](model_card.md) for provenance and evaluation limits.
-
-The author-supplied H20 report records successful execution with the five bundled MSA examples, including PL and PP. This is an execution check. Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.
+All supported input types use the same `ae.ckpt` and `oridynamic.ckpt` files. See [model and sampling settings](model_card.md).

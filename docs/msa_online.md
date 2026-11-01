@@ -19,6 +19,4 @@ python -B -u -m oridynamic --manifest request.json \
   --seeds 0,1 --samples-per-seed 8 --out runs/from_online_msas_v1
 ```
 
-Report online preparation time separately from local inference time. The single-target `python -m oridynamic.predict` entry point retains its earlier online-search compatibility, while the recommended `oridynamic sample` entry point accepts existing MSAs, local search, or explicit query-only smoke tests.
-
-For the legacy single-target online path, `MMSEQS_SERVICE_HOST_URL` overrides the Protenix MSA endpoint. No placeholder credentials are sent. If a private endpoint requires HTTP Basic authentication, set both `MSA_SERVICE_USERNAME` and `MSA_SERVICE_PASSWORD` in the process environment. Existing alignments and local search do not use these settings.
+Measure online MSA preparation separately from local inference; service time includes networking and queueing.
