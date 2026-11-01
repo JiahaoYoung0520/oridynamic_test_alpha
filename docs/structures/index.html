@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore OriDynamic conformational ensembles in 3D. Rotate, zoom, and compare generated structures with molecular dynamics references.">
+  <title>Structure explorer · OriDynamic</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="viewer.css">
+  <script defer src="vendor/3Dmol-2.5.5.min.js"></script>
+  <script defer src="catalog.js"></script>
+  <script defer src="viewer.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="wordmark" href="https://oridynamics.github.io/">Ori<span>Dynamic</span><small>Beta</small></a>
+    <nav aria-label="Project links">
+      <a href="https://github.com/JiahaoYoung0520/oridynamic_test">GitHub ↗</a>
+      <a href="https://oridynamics.github.io/">Website ↗</a>
+    </nav>
+  </header>
+  <main>
+    <div class="intro">
+      <p class="eyebrow">Explore the ensemble</p>
+      <h1>Structures you can explore.</h1>
+      <p>Rotate, zoom, and compare generated conformations with their MD reference ensembles.</p>
+    </div>
+    <div id="cases" class="case-tabs" role="group" aria-label="Choose a molecular system"></div>
+    <section class="explorer" aria-label="Interactive structure comparison">
+      <div class="system-heading">
+        <div><h2 id="target-name">Loading structures…</h2><p id="target-info"></p></div>
+        <a id="download" class="download" href="downloads/6odd_B.zip" download>↓ PyMOL + PDB</a>
+      </div>
+      <div class="toolbar">
+        <label class="select-label">Show
+          <select id="conformation" disabled>
+            <option value="all">Ensemble · 8 conformations</option>
+            <option value="0">Representative</option>
+            <option value="1">Conformation 2</option>
+            <option value="2">Conformation 3</option>
+            <option value="3">Conformation 4</option>
+            <option value="4">Conformation 5</option>
+            <option value="5">Conformation 6</option>
+            <option value="6">Conformation 7</option>
+            <option value="7">Conformation 8</option>
+          </select>
+        </label>
+        <label id="pocket-control" class="select-label" hidden>View
+          <select id="view-mode" disabled><option value="full">Full complex</option><option value="pocket">Ligand pocket</option></select>
+        </label>
+        <div class="view-tools">
+          <label class="check-label"><input id="linked" type="checkbox" checked> Link views</label>
+          <button id="rotate" type="button" aria-pressed="false" disabled>↻ Rotate</button>
+          <button id="reset" type="button" disabled>Reset view</button>
+        </div>
+      </div>
+      <div id="status" role="status" aria-live="polite">Loading viewer…</div>
+      <div class="viewers">
+        <section class="view-panel gt-panel" aria-labelledby="gt-label">
+          <h3 id="gt-label"><span class="dot pink"></span>GT / MD</h3>
+          <div id="gt-view" class="molecule" role="img" aria-label="MD reference ensemble. Drag to rotate; scroll or pinch to zoom."></div>
+        </section>
+        <section class="view-panel pred-panel" aria-labelledby="pred-label">
+          <h3 id="pred-label"><span class="dot blue"></span>OriDynamic</h3>
+          <div id="pred-view" class="molecule" role="img" aria-label="Generated ensemble. Drag to rotate; scroll or pinch to zoom."></div>
+        </section>
+      </div>
+      <div class="viewer-footer">
+        <span>Drag to rotate · Scroll or pinch to zoom · Right-drag to pan</span>
+        <span id="display-info">8 sampled conformations per ensemble</span>
+      </div>
+    </section>
+    <p id="caption" class="caption">Solid cartoons show representative conformations; lighter traces show additional samples. Both views share the same alignment and scale.</p>
+    <noscript><p>Enable JavaScript to explore the structures, or download the <a href="downloads/6odd_B.zip">PyMOL files</a>.</p></noscript>
+  </main>
+  <footer class="page-footer">
+    <span>LGLab Frontier AI Group</span>
+    <span>Viewer: <a href="https://3dmol.org/">3Dmol.js</a> · <a href="vendor/LICENSE-3Dmol.txt">License</a></span>
+  </footer>
+</body>
+</html>

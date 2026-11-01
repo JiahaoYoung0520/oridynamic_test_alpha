@@ -7,7 +7,7 @@
 [![Beta release: 0.1.0b0](docs/images/release.svg)](pyproject.toml)
 [![Apache-2.0 license](docs/images/license.svg)](LICENSE)
 
-[🌐 Website](https://oridynamics.github.io/) &nbsp; · &nbsp; [🤗 Weights](https://huggingface.co/DanielYoung0520/oridynamic_v0) &nbsp; · &nbsp; [🚀 Quick start](#quick-start) &nbsp; · &nbsp; [📖 Documentation](#documentation)
+[🌐 Website](https://oridynamics.github.io/) &nbsp; · &nbsp; [🤗 Weights](https://huggingface.co/DanielYoung0520/oridynamic_v0) &nbsp; · &nbsp; [🔬 Structures](#structure-explorer) &nbsp; · &nbsp; [🚀 Quick start](#quick-start) &nbsp; · &nbsp; [📖 Documentation](#documentation)
 
 </div>
 
@@ -20,6 +20,20 @@ OriDynamic generates all-atom conformational ensembles for protein monomers, pro
 | Protein–protein assembly | JSON containing the interacting protein chains |
 
 The [five bundled examples](#quick-start) include matching MSAs and cover all three system types. Multiple systems can be processed in one run, with models loaded once per batch.
+
+<a id="structure-explorer"></a>
+
+## 🔬 Explore generated ensembles
+
+Compare OriDynamic structures with MD references across **five selected systems**, from a 74-residue monomer to a 669-residue protein, plus protein–ligand and protein–protein complexes.
+
+<a href="https://JiahaoYoung0520.github.io/oridynamic_test/"><img src="docs/structures/preview.gif" alt="GT and OriDynamic ensembles of 6odd_B, rotating side by side" width="760"></a>
+
+**[Open the interactive 3D viewer →](https://JiahaoYoung0520.github.io/oridynamic_test/)**
+
+Drag to rotate, scroll to zoom, and switch between the ensemble, individual conformations, and the ligand pocket. Both views move together. Use **PyMOL + PDB** in the viewer to download the selected system for local exploration.
+
+For offline viewing, open `docs/structures/index.html` from a clone of this repository in your browser.
 
 <a id="installation"></a>
 
