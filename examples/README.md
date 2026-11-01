@@ -4,6 +4,8 @@
 
 ## Run the examples
 
+These files are in the GitHub code checkout, not the Hugging Face weight repository or the installed wheel. Run the commands below from the root of the code checkout.
+
 Follow [INSTALL.md](../INSTALL.md) to install the inference environment and configure `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS` for the model weights and CCD resources. MSA search tools and databases are not needed for the bundled examples.
 
 ```bash

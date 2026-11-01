@@ -19,16 +19,16 @@ Multiple FASTA entries describe independent monomers. Use JSON to describe inter
 ]
 ```
 
-These short sequences illustrate the format. The [five example systems](../examples/five_cases.json) contain real input sequences. Specify a unique list of chain IDs for each entity; multiple copies of the same entity can use `id: ["A", "B"], count: 2`.
+These short sequences illustrate the format. The [five examples with bundled MSAs](../examples/five_cases_with_msa.json) contain real input sequences and alignment paths. Specify a unique list of chain IDs for each entity; multiple copies of the same entity can use `id: ["A", "B"], count: 2`.
 
-Relative MSA, ligand-file, and initial-structure paths are resolved from the input JSON directory. Protein sequences must use the 20 standard amino acids. Unsupported modifications, nucleic acids, ions, and covalent constraints between entities are rejected explicitly.
+Relative MSA, ligand-file, and initial-structure paths are resolved from the input JSON directory. Protein sequences must use the 20 standard amino acids. The public adapter accepts `proteinChain` and `ligand` entities and rejects unsupported task/entity fields. Nucleic acids, standalone ion entities, modified protein residues, and inter-entity covalent constraints are outside this release interface.
 
 ## MSAs and chemical reference features
 
 - Each protein entity can provide `unpairedMsaPath` and an optional `pairedMsaPath`. The query sequence is validated for each alignment.
 - When an unpaired MSA is absent, `--msa-local-db` searches separately for each entity. Copies of the same entity share an MSA.
 - Local search produces unpaired alignments. Supplied paired A3Ms are passed to the native Protenix pairing logic.
-- `--single-sequence` explicitly selects query-only input for smoke tests. The batch entry point does not contact an online MSA service automatically.
+- `--single-sequence` permits query-only input for protein entities without a supplied MSA, for smoke tests. The batch entry point does not contact an online MSA service automatically.
 - Ligands such as `CCD_75G` are resolved against the local CCD resources. SMILES and `FILE_relative/path.mol` inputs use native Protenix parsing and conformer generation.
 - Chemical reference features (`ref_pos`) and the full-complex decoder anchor have different roles. The native featurizer supplies chemical graphs, atom names, elements, charges, validity masks, bonds, and atom-to-token mappings; ligand atoms remain part of ensemble generation.
 
@@ -51,6 +51,6 @@ Without a supplied structure, Protenix predicts the entire complex from its prot
 
 ## Validation scope
 
-This interface adds complex input handling and strict atom mapping to the existing model. It does not introduce a separately trained PL/PP model. The default Joint200 checkpoint adapts Joint11500 on monomer and PL systems; PP was excluded from this adaptation and remains outside its training scope. See [model notes](model_card.md).
+Monomer, PL, and PP inputs use the same released `ae.ckpt` / `oridynamic.ckpt` pair; there is no per-modality checkpoint selection in this CLI. The joint model received additional adaptation on monomer and PL systems. PP was not included in that adaptation. See [model notes](model_card.md) for provenance and evaluation limits.
 
-The author-supplied H20 report records successful Joint200 execution with the five bundled MSA examples, including PL and PP. This is an execution check; its provenance and limitations are described in [model notes](model_card.md#validation-and-scope). Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.
+The author-supplied H20 report records successful execution with the five bundled MSA examples, including PL and PP. This is an execution check. Binding poses, interfaces, ensemble distributions, and full local MSA search require separate evaluation.

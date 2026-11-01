@@ -6,7 +6,7 @@ The batch runner reuses the existing model, strict checkpoint loading, atom-iden
 
 ## Inputs and execution
 
-Run from this repository with the dependencies installed:
+Complete the [installation and resource setup](../INSTALL.md) first. Run from the code checkout with the environment activated and `ORIDYNAMIC_PATHS` / `ORIDYNAMIC_ASSETS` set:
 
 ```bash
 python -B -u -m oridynamic \
@@ -49,18 +49,18 @@ python -B -u -m oridynamic \
 
 Local search defaults to CPU. Add `--msa-device gpu` to use a compatible GPU-enabled ColabFold/MMseqs2 installation; GPU visibility follows `CUDA_VISIBLE_DEVICES`.
 
-You can also supply `--msa-dir`: existing alignments are reused, and only missing ones are searched. The wrapper invokes the search tool separately for each target; it does not guarantee a single database load. Search completes before model loading. Temporary files stay within the new run directory, and public databases are read-only. A failed search stops the run.
+You can also supply `--msa-dir`: existing alignments are reused, and only missing ones are searched. The wrapper invokes the search tool separately for each protein entity; it does not guarantee a single database load. Search completes before model loading. Temporary files stay within the new run directory, and public databases are read-only. A failed search stops the run.
 
 See [INSTALL.md](../INSTALL.md) for local installation, CPU/GPU search, and the separate search container. Online search is a separate preparation step described in the [online MSA guide](msa_online.md). `--single-sequence` is an explicit query-only smoke-test option, not a substitute for MSA-based quality evaluation.
 
 ## Model lifecycle and memory
 
 1. Validate inputs and prepare all MSAs.
-2. Load base Protenix once, prepare each target, and predict or map its anchor. Base context is cached for compatibility with older checkpoints; Joint200 decoding uses the subsequent online LoRA context.
+2. Load base Protenix once, prepare each target, and predict or map its anchor. Base context is cached for compatibility with older checkpoints; the released joint model decodes with the subsequent online LoRA context.
 3. After all anchors and contexts are saved, load the autoencoder, DiT, and Joint state and inject LoRA into the base model.
 4. Process targets in turn, computing the online LoRA context and generating samples with the selected anchor.
 
-The base preparation phase must finish before `build_joint()` modifies the native model. Each target still requires its own forward passes. By default, four anchor candidates are generated and the native ranking score selects one; all final samples use that anchor. `--anchor-candidates 1` changes this budget explicitly.
+All target anchors are prepared before the joint-model LoRA parameters are applied. Each target still requires its own forward passes. By default, four anchor candidates are generated and the native ranking score selects one; all final samples use that anchor. `--anchor-candidates 1` changes this budget explicitly.
 
 Models remain in the process, with CPU/GPU offloading between phases and intermediate tensors released between targets. The defaults `--sample-chunk-size 1` and `--attention-chunk-size 32` limit working memory, but do not guarantee support for arbitrary lengths on smaller GPUs. The pair-context tensors in each run-specific `prepared.pt` grow quadratically with token count, so reserve output-disk space accordingly. They are not a shared cache across runs.
 
@@ -68,20 +68,22 @@ Additional controls include `--anchor-seed` (default 101), `--device` (default `
 
 ## Outputs and timing
 
-| File | Contents |
+All paths below are relative to the directory passed to `--out`.
+
+| Path | Contents |
 | :--- | :--- |
-| `targets/<name>/anchor.cif` | Selected initial structure; full-precision coordinates are retained in `prepared.pt` |
-| `prepared.pt`, `prepared.json` | Inputs, frozen context, atom identities, and anchor, with restricted loading and hash/contract checks |
-| `ensemble.cif`, `proposals.cif` | Final conformations and decoded proposals for the target |
-| `seed_*.pt` | Per-seed tensors |
-| `run_metadata.json`, `completion.json` | Target configuration, provenance, and completion status |
-| `request.json`, `progress.json` | Validated batch request and current phase/target position |
-| `failure.json` | Failure information, written only when a run fails |
-| `targets/<name>/input.json`, `resolved_config.json`, `native/` | Per-target native input, resolved model configuration, and native intermediate outputs |
-| `targets/<name>/chains/<chain>/msa/` | Per-chain local-search alignments and provenance when local search is used |
-| `summary.json` | Shared initialization, per-target timings, and model-load counts |
-| `timing.json` | Overall wall time and separately recorded stages |
-| `anchor_phase/timing.json`, `ensemble_phase/timing.json` | Per-target phase timing |
+| `request.json`, `progress.json` | Batch request and phase/target progress |
+| `summary.json`, `timing.json` | Batch completion summary, model-load counts, and timing |
+| `failure.json` | Failure details when an error occurs after run initialization; absent after success |
+| `targets/<name>/anchor.cif` | Selected initial structure |
+| `targets/<name>/proposals.cif`, `targets/<name>/ensemble.cif` | Decoded proposals and final conformations |
+| `targets/<name>/prepared.pt`, `targets/<name>/prepared.json` | Prepared inputs, full-precision anchor, context tensors, identities, and integrity metadata |
+| `targets/<name>/seed_<seed>.pt` | Per-seed proposal/final tensors |
+| `targets/<name>/input.json`, `targets/<name>/resolved_config.json` | Effective native molecular input and model configuration |
+| `targets/<name>/run_metadata.json`, `targets/<name>/completion.json` | Target provenance, sampling settings, and completion status |
+| `targets/<name>/anchor_phase/timing.json`, `targets/<name>/ensemble_phase/timing.json` | Per-target phase timings |
+
+For JSON inputs, protein queries and alignments are stored under `targets/<name>/chains/<first_entity_chain_id>/`: `query.fasta`, copied `provided.a3m`/`paired.a3m`, or query-only `query.a3m`, depending on the selected MSA mode. Local search creates `msa/unpaired.a3m` and `msa/search.json` there. For FASTA/manifest inputs, the same files are directly under `targets/<name>/`. Homomeric copies of one protein entity share its alignment. `input_fingerprints.json` is written within the target directory only with `--trace-inputs`.
 
 Each ensemble/proposal CIF combines samples from all requested seeds. The final count per target is the number of seeds multiplied by `--samples-per-seed`. Chunk size controls how many samples are processed together, not the total count; changing chunk size changes the assignment of intermediate SDE noise draws and can produce different conformations. Even with the same seed and chunk size, identical GPU coordinates are not guaranteed. See [reproducibility notes](model_card.md#reproducibility).
 

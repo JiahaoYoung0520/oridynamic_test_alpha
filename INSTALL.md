@@ -2,7 +2,7 @@
 
 OriDynamic supports editable installation with `python -m pip install -e .` and installation from a built wheel. The public commands are `oridynamic sample`, `oridynamic msa`, and `oridynamic doctor`. See the [README](README.md) for a quick start.
 
-Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. Weights are hosted in the public [Hugging Face repository](https://huggingface.co/DanielYoung0520/oridynamic_v0). Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
+Use the Python 3.11 / CUDA 12.6 environment below in a dedicated environment. This package is not currently distributed through PyPI. The two OriDynamic weights are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0); the Protenix base and CCD resources are obtained from the official Protenix distribution. Set `ORIDYNAMIC_PATHS` and `ORIDYNAMIC_ASSETS`, or pass `--paths` and `--assets-root` explicitly.
 
 Inference requires this repository, its matching inference checkpoints, CCD resources, and the appropriate MSA inputs or search resources. FASTA entries describe independent proteins; use the [complex JSON format](docs/complex_inputs.md) for protein–ligand and protein–protein systems. Keep other Protenix installations and research worktrees out of this environment's `PYTHONPATH`.
 
@@ -26,14 +26,21 @@ The inference image does not include MSA databases or search tools. Generate MSA
 
 ## 1. Inference environment
 
-The tested runtime uses Linux x86_64, Python 3.11, and PyTorch 2.7.1 with CUDA 12.6. Create a dedicated environment:
+The tested runtime uses Linux x86_64, Python 3.11, and PyTorch 2.7.1 with CUDA 12.6. For a fresh checkout and environment:
 
 ```bash
-conda create -y -p "$PWD/.envs/ptx" python=3.11
-conda run -p "$PWD/.envs/ptx" python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu126
-conda run -p "$PWD/.envs/ptx" python -m pip install -r requirements-inference.txt
-conda run -p "$PWD/.envs/ptx" python -m pip install --no-deps -e .
+git clone https://github.com/JiahaoYoung0520/oridynamic_test_alpha.git
+cd oridynamic_test_alpha
+
+conda create -n oridynamic python=3.11 -y
+conda activate oridynamic
+
+python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install -e .
+oridynamic --help
 ```
+
+Keep this environment activated and run subsequent commands from the code repository root. If the code is already cloned, start with environment setup inside that checkout. The package reads its Python dependencies from `requirements-inference.txt`; the CUDA-specific Torch wheel is installed first.
 
 Alternatively, build the supplied inference image from this repository:
 
@@ -48,12 +55,12 @@ The default Torch backend does not require compiling fused LayerNorm. The option
 Download the OriDynamic autoencoder and joint weights from [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0), then obtain **Protenix base v1.0.0** from the official upstream URL. Our Hugging Face repository distributes only the two OriDynamic checkpoints; no login or invitation is required.
 
 ```bash
+mkdir -p weights assets/common
 python -m pip install -U huggingface_hub
 hf download DanielYoung0520/oridynamic_v0 \
   ae.ckpt oridynamic.ckpt weights_manifest.json \
   --local-dir weights
 
-# Obtain the exact Protenix v1 base from its official distribution.
 curl -fL --retry 3 \
   https://protenix.tos-cn-beijing.volces.com/checkpoint/protenix_base_default_v1.0.0.pt \
   -o weights/protenix_base_default_v1.0.0.pt
@@ -62,7 +69,7 @@ printf '%s  %s\n' \
   weights/protenix_base_default_v1.0.0.pt | sha256sum -c -
 ```
 
-Run this command from the code repository root. The expected layout is:
+After also downloading the CCD files below, the local resource layout is:
 
 ```text
 weights/
@@ -79,11 +86,32 @@ Use the exact official Protenix v1.0.0 file and the matching OriDynamic exports.
 
 Earlier installations using the verified OriDynamic-wrapped Protenix v1 base remain compatible. For a fresh install, use the official file above. Renaming an arbitrary checkpoint does not make it compatible.
 
-Prepare the matching CCD files, including the RDKit companion file, according to the [Protenix project](https://github.com/bytedance/Protenix). Use a trusted source for the pickle file. These resources are not downloaded automatically.
+Download both CCD files from the official URLs used by this release. The inference runtime does not fetch them automatically:
+
+```bash
+curl -fL --retry 3 \
+  https://protenix.tos-cn-beijing.volces.com/common/components.cif \
+  -o assets/common/components.cif
+curl -fL --retry 3 \
+  https://protenix.tos-cn-beijing.volces.com/common/components.cif.rdkit_mol.pkl \
+  -o assets/common/components.cif.rdkit_mol.pkl
+```
+
+The RDKit companion is a pickle resource; use the official source above. Once the files are present, set the paths in the same shell:
+
+```bash
+export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
+export ORIDYNAMIC_ASSETS="$PWD/assets"
+oridynamic doctor
+```
+
+`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. `oridynamic doctor` checks package availability and file paths; it does not load model weights or validate a GPU forward pass.
 
 For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains OriDynamic weights and documentation; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
 
 ## 3. Checks and GPU smoke tests
+
+These commands assume the activated environment and resource variables from sections 1–2. The test suite and example files are in the Git checkout. Each check or inference run needs a new output directory.
 
 ```bash
 python -B -m unittest discover -s tests -v
@@ -159,4 +187,4 @@ The [batch guide](docs/batch_inference.md#outputs-and-timing) defines search and
 
 OriDynamic inference code and its autoencoder and joint-model inference weights are released under [Apache-2.0](LICENSE), with copyright held by LGLab Frontier AI Group for its contributions. The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX), [NOTICE](NOTICE), and [source attribution](docs/SOURCES.md). Third-party dependencies, external weights, and public databases retain their respective terms.
 
-The code package includes inference modules and six small example MSAs. Model weights, CCD resources, full MSA databases, training entry points, and MD datasets are supplied separately or excluded. User inputs, search results, and generated structures remain in each run's output directory.
+The Git checkout includes inference modules, documentation, six example MSAs, tests, and the Docker/MSA helper scripts. A built wheel contains the Python modules and packaged configuration JSON files; it does not bundle the examples, documentation, tests, or shell helpers. Keep the checkout for the documented examples and checks. Model weights and CCD resources are downloaded separately. Full MSA databases, training code, and MD datasets are not included. User inputs, search results, and generated structures stay in the output directory.

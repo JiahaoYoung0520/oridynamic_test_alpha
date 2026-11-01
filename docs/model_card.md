@@ -2,7 +2,7 @@
 
 ## Default model
 
-The alpha release uses the official **Protenix base v1.0.0**, `ae.ckpt` (the structural autoencoder, latent width 32), and `oridynamic.ckpt` (latent flow, coordinate refiner, trunk LoRA weights, and latent normalization statistics). A separate flow checkpoint is not required.
+The file names in this note match the current code configuration and Hugging Face manifest. The alpha release uses the official **Protenix base v1.0.0**, `ae.ckpt` (the structural autoencoder, latent width 32), and `oridynamic.ckpt` (latent flow, coordinate refiner, trunk LoRA weights, and latent normalization statistics). A separate flow checkpoint is not required.
 
 The OriDynamic files are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). Obtain the Protenix base directly from the official URL in [INSTALL.md](../INSTALL.md#2-model-weights-and-ccd). Use the code revision recorded in `weights_manifest.json` or a compatible later revision. The loader verifies the exact upstream base hash, the matching codec identity, and strict model parameter sets using restricted deserialization. The two OriDynamic files are unchanged tensors under neutral filenames; filenames do not determine checkpoint compatibility.
 
@@ -21,7 +21,7 @@ Chemical reference features (`ref_pos`) are distinct from the full-system anchor
 ## Validation and scope
 
 - Joint200 was adapted using labeled monomer and protein–ligand systems from the original test split. Performance on these systems is **not independent held-out evaluation**. This checkpoint should not be used to reproduce earlier Joint11500 benchmark claims without accounting for the adaptation.
-- Protein–protein systems were excluded from this adaptation and remain outside its training scope. The PP input and sampling interface is available; task-specific quality requires separate evaluation.
+- Protein–protein systems were not included in this additional adaptation. This does not imply that PP was excluded from earlier training. The PP input and sampling interface is available; task-specific quality requires separate evaluation.
 - The exported Joint200 tensors are checked against the supplied training checkpoint. Full-size CPU model loading and small-module sampling regressions validate the weight and context routes. These checks do not establish structural quality or full-size GPU performance.
 - An author-supplied deployment report dated **2026-11-01** records Joint200 inference on an NVIDIA H20 with the five bundled MSA examples (three monomers, one PL complex, one PP assembly), producing ten conformations. It also records twelve conformations each for a monomer, PL, and PP system. These are reported execution checks; raw H20 output artifacts have not been independently reviewed in this release update. They do not establish structural quality or an independent benchmark.
 - That H20 deployment used an existing image matching the pinned Python dependencies. It does not validate a fresh build of `docker/Dockerfile.inference`. An earlier query-only five-system smoke test used Joint11500 and is separate evidence.

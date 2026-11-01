@@ -10,13 +10,15 @@ Alpha inference release
 
 </div>
 
-OriDynamic generates conformational ensembles for protein monomers, protein–ligand complexes, and protein–protein assemblies. Provide molecular sequences and composition, together with an existing MSA or a local MSA database. An initial structure is optional: when omitted, OriDynamic predicts one before ensemble generation.
+OriDynamic generates all-atom conformational ensembles for protein monomers, protein–ligand complexes, and protein–protein assemblies. Provide molecular sequences and composition, together with matching MSAs or a local MSA database. An initial structure is optional; when omitted, the cofolding backbone predicts one before ensemble generation.
 
-| System | Input |
+| System | Molecular input |
 | :--- | :--- |
-| Protein monomer | FASTA sequence |
-| Protein–ligand complex | JSON with protein sequences and ligand definitions |
-| Protein–protein assembly | JSON with the interacting protein chains |
+| Protein monomer | A protein sequence in FASTA or JSON |
+| Protein–ligand complex | JSON containing protein sequences and CCD, SMILES, or ligand-file definitions |
+| Protein–protein assembly | JSON containing the interacting protein chains |
+
+Each protein entity needs a matching MSA, supplied as A3M or prepared by local search. The five bundled examples already include their MSAs. `--single-sequence` explicitly permits query-only input for smoke tests.
 
 Multiple systems can be processed in one run. Models are loaded once per batch, and each system is processed independently.
 
@@ -36,21 +38,31 @@ python -m pip install -e .
 oridynamic --help
 ```
 
-The package installs its Python dependencies. For alternative environment setup and the Docker build recipe, see the [installation guide](INSTALL.md).
+This installs the Python package and its dependencies in the activated environment. Run the examples below from the cloned code repository. For alternative environment setup and the Docker build recipe, see the [installation guide](INSTALL.md).
 
 ## Model resources
 
-Inference requires the official Protenix v1.0.0 backbone, two matching OriDynamic checkpoints (`ae.ckpt` and `oridynamic.ckpt`), and CCD chemical-component resources. Prepare them as described in [Model weights and CCD](INSTALL.md#2-model-weights-and-ccd), then configure their locations:
+The repositories provide different parts of the release:
+
+| Resource | Location |
+| :--- | :--- |
+| Inference code, configuration, examples, and six example MSAs | This GitHub repository |
+| `ae.ckpt` — structural autoencoder | [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0/tree/main) |
+| `oridynamic.ckpt` — latent flow, coordinate refiner, trunk adaptation, and latent normalization | [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0/tree/main) |
+| `protenix_base_default_v1.0.0.pt` — cofolding backbone | Official Protenix distribution |
+| `components.cif` and `components.cif.rdkit_mol.pkl` — chemical component data | Official Protenix distribution |
+
+Follow [Model weights and CCD](INSTALL.md#2-model-weights-and-ccd) to download these resources into `weights/` and `assets/common/` in the code checkout. Neither directory is bundled in Git. The Hugging Face repository contains the two OriDynamic checkpoints and their manifest; it does not contain the code, examples, Protenix base, or CCD data. Its downloads are public.
+
+After downloading the resources, configure their locations from the code repository root:
 
 ```bash
 export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
-export ORIDYNAMIC_ASSETS="/absolute/path/to/assets"
+export ORIDYNAMIC_ASSETS="$PWD/assets"
 oridynamic doctor
 ```
 
-The example configuration expects checkpoints in the repository's `weights/` directory. For another location, copy and edit the [path configuration](configs/portable_paths.example.json); relative checkpoint paths are resolved from that configuration file. `ORIDYNAMIC_ASSETS` points to the directory containing `common/components.cif` and `common/components.cif.rdkit_mol.pkl`.
-
-> **Weights:** The two OriDynamic checkpoints are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). The model repository is public; downloading the weights requires no invitation or Hugging Face login. Obtain the Protenix base separately from its official source using the installation guide. `oridynamic.ckpt` contains the latent flow module, refiner, and trunk adaptation. See [model notes](docs/model_card.md) for its scope.
+The [example configuration](configs/portable_paths.example.json) resolves checkpoint paths relative to its own directory. For other locations, edit a copy of that JSON and set `ORIDYNAMIC_PATHS` to it; set `ORIDYNAMIC_ASSETS` to the directory containing `common/`. `oridynamic doctor` checks installation and resource paths, without loading the models. See [model notes](docs/model_card.md) for checkpoint provenance and validation scope.
 
 ## Quick start
 
@@ -138,7 +150,7 @@ Optional initial structures can be supplied with `--structure-dir anchors`, usin
 ```bash
 oridynamic sample \
   --input-json examples/five_cases_with_msa.json \
-  --seeds 0 --samples-per-seed 4 --sample-chunk-size 1 \
+  --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
   --out runs/complex_examples
 ```
 
