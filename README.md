@@ -52,17 +52,16 @@ The repositories provide different parts of the release:
 | `protenix_base_default_v1.0.0.pt` — cofolding backbone | Official Protenix distribution |
 | `components.cif` and `components.cif.rdkit_mol.pkl` — chemical component data | Official Protenix distribution |
 
-Follow [Model weights and CCD](INSTALL.md#2-model-weights-and-ccd) to download these resources into `weights/` and `assets/common/` in the code checkout. Neither directory is bundled in Git. The Hugging Face repository contains the two OriDynamic checkpoints and their manifest; it does not contain the code, examples, Protenix base, or CCD data. Its downloads are public.
+Follow [Model weights and CCD](INSTALL.md#2-model-weights-and-ccd) to download these resources into `weights/` and `assets/common/` in the code checkout. Neither directory is bundled in Git. Hugging Face hosts the two OriDynamic checkpoints; installation, model notes, and usage instructions are maintained here on GitHub. Downloads are public.
 
 After downloading the resources, configure their locations from the code repository root:
 
 ```bash
 export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
 export ORIDYNAMIC_ASSETS="$PWD/assets"
-oridynamic doctor
 ```
 
-The [example configuration](configs/portable_paths.example.json) resolves checkpoint paths relative to its own directory. For other locations, edit a copy of that JSON and set `ORIDYNAMIC_PATHS` to it; set `ORIDYNAMIC_ASSETS` to the directory containing `common/`. `oridynamic doctor` checks installation and resource paths, without loading the models. See [model notes](docs/model_card.md) for checkpoint provenance and validation scope.
+The [example configuration](configs/portable_paths.example.json) resolves checkpoint paths relative to its own directory. For other locations, edit a copy of that JSON and set `ORIDYNAMIC_PATHS` to it; set `ORIDYNAMIC_ASSETS` to the directory containing `common/`. Optional installation checks are described in [INSTALL.md](INSTALL.md#3-checks-and-gpu-smoke-tests). See [model notes](docs/model_card.md) for checkpoint provenance and validation scope.
 
 ## Quick start
 

@@ -2,9 +2,9 @@
 
 ## Default model
 
-The file names in this note match the current code configuration and Hugging Face manifest. The alpha release uses the official **Protenix base v1.0.0**, `ae.ckpt` (the structural autoencoder, latent width 32), and `oridynamic.ckpt` (latent flow, coordinate refiner, trunk LoRA weights, and latent normalization statistics). A separate flow checkpoint is not required.
+The file names in this note match the current code configuration and Hugging Face checkpoints. The alpha release uses the official **Protenix base v1.0.0**, `ae.ckpt` (the structural autoencoder, latent width 32), and `oridynamic.ckpt` (latent flow, coordinate refiner, trunk LoRA weights, and latent normalization statistics). A separate flow checkpoint is not required.
 
-The OriDynamic files are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). Obtain the Protenix base directly from the official URL in [INSTALL.md](../INSTALL.md#2-model-weights-and-ccd). Use the code revision recorded in `weights_manifest.json` or a compatible later revision. The loader verifies the exact upstream base hash, the matching codec identity, and strict model parameter sets using restricted deserialization. The two OriDynamic files are unchanged tensors under neutral filenames; filenames do not determine checkpoint compatibility.
+The OriDynamic files are hosted on [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0). Obtain the Protenix base directly from the official URL in [INSTALL.md](../INSTALL.md#2-model-weights-and-ccd). Checkpoint identities and the verified code revision are recorded [below](#checkpoint-identity); no manifest file is needed at runtime. The loader verifies the exact upstream base hash, the matching codec identity, and strict model parameter sets using restricted deserialization. The two OriDynamic files are unchanged tensors under neutral filenames; filenames do not determine checkpoint compatibility.
 
 For provenance, the autoencoder was saved at step 100,000. The joint model is the checkpoint previously called **Joint200**, saved after 200 predicted-anchor adaptation updates from Joint11500. It uses online LoRA context for the frozen codec. The release exports exclude optimizers, schedulers, training RNG state, and local dataset paths.
 
@@ -32,3 +32,18 @@ Chemical reference features (`ref_pos`) are distinct from the full-system anchor
 ## Reproducibility
 
 Record the checkpoint hashes, inputs and MSAs, seeds, chunk sizes, attention backend, precision, and software/hardware environment. Matching seeds do not guarantee identical coordinates on GPU. Changing `--sample-chunk-size` can change which intermediate SDE noise draws are assigned to each sample and produce different conformations; it is not merely a memory setting. Keep it fixed when comparing individual samples. Reported same-seed differences on H20 have not been traced to a specific operation or independently reproduced here.
+
+## Checkpoint identity
+
+These exports were verified with code revision [bdcef5e](https://github.com/JiahaoYoung0520/oridynamic_test_alpha/tree/bdcef5e2e435a41b369461b2b3f45214a4d3f8ec). Subsequent documentation-only updates retain the same model interface. Check the identities below when selecting weights for this release.
+
+<details>
+<summary>File sizes and SHA-256 checksums</summary>
+
+| File | Bytes | SHA-256 |
+| :--- | ---: | :--- |
+| `ae.ckpt` | 813638719 | `950ca1971e9b86d3c5560df694328d389877722569ddc40e0a48d6e11ac5e0ea` |
+| `oridynamic.ckpt` | 948744621 | `3719e2eb8465d21116b0442702132a2f95ff5ae9792edba265fd21271228c9ad` |
+| `protenix_base_default_v1.0.0.pt` (official external dependency) | 1475950125 | `2b7d5a8b30494514fc47fd2271a16260528cdba170ba09cc112fdecd8f85ec04` |
+
+</details>

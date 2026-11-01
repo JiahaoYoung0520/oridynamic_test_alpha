@@ -58,7 +58,7 @@ Download the OriDynamic autoencoder and joint weights from [Hugging Face](https:
 mkdir -p weights assets/common
 python -m pip install -U huggingface_hub
 hf download DanielYoung0520/oridynamic_v0 \
-  ae.ckpt oridynamic.ckpt weights_manifest.json \
+  ae.ckpt oridynamic.ckpt \
   --local-dir weights
 
 curl -fL --retry 3 \
@@ -76,7 +76,6 @@ weights/
   protenix_base_default_v1.0.0.pt
   ae.ckpt
   oridynamic.ckpt
-  weights_manifest.json
 assets/common/
   components.cif
   components.cif.rdkit_mol.pkl
@@ -102,14 +101,21 @@ The RDKit companion is a pickle resource; use the official source above. Once th
 ```bash
 export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
 export ORIDYNAMIC_ASSETS="$PWD/assets"
-oridynamic doctor
 ```
 
-`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. `oridynamic doctor` checks package availability and file paths; it does not load model weights or validate a GPU forward pass.
+`ORIDYNAMIC_ASSETS` names the directory containing `common/`, not `common/` itself. Checkpoint sizes, SHA-256 hashes, and the verified code revision are recorded in the [model notes](docs/model_card.md#checkpoint-identity). No separate manifest file is required for inference.
 
 For custom locations, pass `--paths my_paths.json --assets-root /path/to/assets`. The JSON format is shown in [portable_paths.example.json](configs/portable_paths.example.json); relative checkpoint paths are resolved from the JSON file's directory. The Hugging Face bundle contains OriDynamic weights and documentation; a prebuilt container image is not provided. Resource redistribution terms are tracked separately from the source-code release.
 
 ## 3. Checks and GPU smoke tests
+
+`oridynamic doctor` is an optional, read-only diagnostic command. It checks Python/platform support, installed package versions, and checkpoint/CCD file paths supplied through the environment variables above or explicit arguments. Add `--check-device` to query CUDA availability. It does not download resources, load models, verify checkpoint contents, or run inference, and it is not a required step before sampling.
+
+```bash
+oridynamic doctor
+# Optional CUDA availability check:
+oridynamic doctor --check-device
+```
 
 These commands assume the activated environment and resource variables from sections 1–2. The test suite and example files are in the Git checkout. Each check or inference run needs a new output directory.
 
