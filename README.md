@@ -51,8 +51,8 @@ Download the following resources before running inference:
 | :--- | :--- |
 | `ae.ckpt` — structural autoencoder | [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0/tree/main) |
 | `oridynamic.ckpt` — latent flow, coordinate refiner, trunk adaptation, and latent normalization | [Hugging Face](https://huggingface.co/DanielYoung0520/oridynamic_v0/tree/main) |
-| `protenix_base_default_v1.0.0.pt` — cofolding backbone | Official Protenix distribution |
-| `components.cif` and `components.cif.rdkit_mol.pkl` — chemical component data | Official Protenix distribution |
+| `protenix_base_default_v1.0.0.pt` — cofolding backbone | [Official Protenix repository](https://github.com/bytedance/Protenix) |
+| `components.cif` and `components.cif.rdkit_mol.pkl` — chemical component data | [Official Protenix repository](https://github.com/bytedance/Protenix) |
 
 Follow [Model weights and CCD](INSTALL.md#2-model-weights-and-ccd) to download these resources into `weights/` and `assets/common/` in the code checkout.
 
