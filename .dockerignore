@@ -25,6 +25,8 @@
 !examples/msas/*.a3m
 !examples/README.md
 !LICENSE-PTX
+!LICENSE
+!NOTICE
 !README.md
 !INSTALL.md
 configs/local_paths.example.json

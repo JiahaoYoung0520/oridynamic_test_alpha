@@ -1,4 +1,4 @@
-include README.md INSTALL.md LICENSE-PTX
+include README.md INSTALL.md LICENSE LICENSE-PTX NOTICE
 include requirements-inference.txt pyproject.toml
 include configs/inference_defaults.json configs/base_diffusion_signature.json
 include configs/portable_paths.example.json configs/container_paths.example.json

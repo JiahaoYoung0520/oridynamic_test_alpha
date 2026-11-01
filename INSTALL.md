@@ -150,6 +150,6 @@ The [batch guide](docs/batch_inference.md#outputs-and-timing) defines search and
 
 ## 5. Sources and scope
 
-The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX) and [source attribution](docs/SOURCES.md). Dependencies, model weights, and public databases retain their respective terms.
+OriDynamic inference code and its autoencoder and joint-model inference weights are released under [Apache-2.0](LICENSE), with copyright held by LGLab Frontier AI Group for its contributions. The package reuses Protenix networks and features and calls the public ColabFold/MMseqs2 CLI. It preserves [LICENSE-PTX](LICENSE-PTX), [NOTICE](NOTICE), and [source attribution](docs/SOURCES.md). Third-party dependencies, external weights, and public databases retain their respective terms.
 
 The code package includes inference modules and six small example MSAs. Model weights, CCD resources, full MSA databases, training entry points, and MD datasets are supplied separately or excluded. User inputs, search results, and generated structures remain in each run's output directory.

@@ -154,3 +154,5 @@ The [complex-input guide](docs/complex_inputs.md) covers ligand definitions, cha
 | [Online MSA](docs/msa_online.md) | Preparing alignments with an external service |
 | [Examples](examples/README.md) | Five example systems and installation smoke tests |
 | [Model notes](docs/model_card.md) | Model configuration and scope |
+
+Copyright 2026 LGLab Frontier AI Group. OriDynamic inference code is licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for upstream attribution; third-party resources retain their respective terms.

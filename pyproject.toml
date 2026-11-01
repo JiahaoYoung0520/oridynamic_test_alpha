@@ -7,7 +7,8 @@ name = "oridynamic-inference"
 version = "0.1.0a0"
 description = "All-atom biomolecular ensemble generation with OriDynamic"
 readme = "README.md"
-license-files = ["LICENSE-PTX"]
+license = "Apache-2.0"
+license-files = ["LICENSE", "LICENSE-PTX", "NOTICE"]
 requires-python = ">=3.11,<3.12"
 dynamic = ["dependencies"]
 classifiers = [

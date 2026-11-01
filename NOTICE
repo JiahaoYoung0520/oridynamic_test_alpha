@@ -1,0 +1,12 @@
+OriDynamic
+Copyright 2026 LGLab Frontier AI Group for the OriDynamic contributions and
+model adaptations.
+
+This distribution incorporates code and model parameters derived from
+Protenix, Copyright 2024 ByteDance and/or its affiliates. The upstream
+Apache-2.0 license is retained in LICENSE-PTX. Existing third-party copyright
+and attribution notices in the source files are preserved.
+
+The Apache-2.0 license text for OriDynamic is provided in LICENSE.
+Third-party dependencies and external data resources retain their
+respective terms.
