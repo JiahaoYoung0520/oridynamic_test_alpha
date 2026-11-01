@@ -1,12 +1,13 @@
 <div align="center">
 
-<img src="docs/images/oridynamic-logo.png" alt="OriDynamic" width="680">
+<img src="docs/images/oridynamic-logo.png" alt="OriDynamic" width="560">
 
 **All-atom conformational ensembles for biomolecular systems**
 
-Alpha inference release
+[![Beta release: 0.1.0b0](docs/images/release.svg)](pyproject.toml)
+[![Apache-2.0 license](docs/images/license.svg)](LICENSE)
 
-[Weights](https://huggingface.co/DanielYoung0520/oridynamic_v0) · [Installation](#installation) · [Quick start](#quick-start) · [MSA options](#msa-options) · [Batch and complexes](#batch-and-complexes) · [Documentation](#documentation)
+[🌐 Website](https://oridynamics.github.io/) &nbsp; · &nbsp; [🤗 Weights](https://huggingface.co/DanielYoung0520/oridynamic_v0) &nbsp; · &nbsp; [🚀 Quick start](#quick-start) &nbsp; · &nbsp; [📖 Documentation](#documentation)
 
 </div>
 
@@ -18,11 +19,11 @@ OriDynamic generates all-atom conformational ensembles for protein monomers, pro
 | Protein–ligand complex | JSON containing protein sequences and CCD, SMILES, or ligand-file definitions |
 | Protein–protein assembly | JSON containing the interacting protein chains |
 
-Each protein entity needs a matching MSA, supplied as A3M or prepared by local search. The five bundled examples already include their MSAs. `--single-sequence` explicitly permits query-only input for smoke tests.
+The [five bundled examples](#quick-start) include matching MSAs and cover all three system types. Multiple systems can be processed in one run, with models loaded once per batch.
 
-Multiple systems can be processed in one run. Models are loaded once per batch, and each system is processed independently.
+<a id="installation"></a>
 
-## Installation
+## ⚙️ Installation
 
 The tested inference environment uses **Linux, Python 3.11, PyTorch 2.7.1 with CUDA 12.6, and an NVIDIA GPU**.
 
@@ -38,9 +39,11 @@ python -m pip install -e .
 oridynamic --help
 ```
 
-This installs the Python package and its dependencies in the activated environment. Run the examples below from the cloned code repository. For alternative environment setup and the Docker build recipe, see the [installation guide](INSTALL.md).
+Run the examples below from the cloned repository. Alternative environment setup and Docker instructions are in the [installation guide](INSTALL.md).
 
-## Model resources
+<a id="model-resources"></a>
+
+## 📦 Model resources
 
 Download the following resources before running inference:
 
@@ -60,11 +63,13 @@ export ORIDYNAMIC_PATHS="$PWD/configs/portable_paths.example.json"
 export ORIDYNAMIC_ASSETS="$PWD/assets"
 ```
 
-The [example configuration](configs/portable_paths.example.json) resolves checkpoint paths relative to its own directory. For other locations, edit a copy of that JSON and set `ORIDYNAMIC_PATHS` to it; set `ORIDYNAMIC_ASSETS` to the directory containing `common/`. Optional installation checks are described in [INSTALL.md](INSTALL.md#3-optional-environment-check). See [model notes](docs/model_card.md) for model configuration and sampling behavior.
+For resources stored elsewhere, edit a copy of the [path configuration](configs/portable_paths.example.json) and set `ORIDYNAMIC_PATHS` to it. Checkpoint paths are relative to that JSON; `ORIDYNAMIC_ASSETS` should point to the directory containing `common/`.
 
-## Quick start
+<a id="quick-start"></a>
 
-Run the five bundled examples: three monomers, one protein–ligand complex, and one protein–protein assembly. Their six protein MSAs are included, so no MSA search tools or databases are needed for this example.
+## 🚀 Quick start
+
+After [installation](#installation) and [resource setup](#model-resources), run the five bundled examples: three monomers, one protein–ligand complex, and one protein–protein assembly. Their MSAs are included, so this example needs no MSA search tools or databases.
 
 ```bash
 oridynamic sample \
@@ -73,7 +78,16 @@ oridynamic sample \
   --out runs/five_cases
 ```
 
-This generates **two conformations per system**. Final structures are written to `runs/five_cases/targets/<target>/ensemble.cif`. Configure the environment, weights, and CCD resources above before running. See the [example guide](examples/README.md) for the included alignments.
+**Result:** two conformations per system, saved to:
+
+```text
+runs/five_cases/targets/<target>/ensemble.cif
+```
+
+Use a new output directory for each run. See the [example guide](examples/README.md) for the included systems and alignments.
+
+<details>
+<summary><strong>Use your own protein sequence</strong></summary>
 
 For your own protein sequence, provide its matching A3M alignment:
 
@@ -87,7 +101,9 @@ oridynamic sample \
   --out runs/protein
 ```
 
-This generates **16 conformations**: two seeds with eight samples each. Final structures are written to `runs/protein/targets/<target>/ensemble.cif`, where `<target>` is the first word of the FASTA header. Use a new output directory for each run.
+This generates **16 conformations**: two seeds with eight samples each. Final structures are written to `runs/protein/targets/<target>/ensemble.cif`, where `<target>` is the first word of the FASTA header.
+
+</details>
 
 <details>
 <summary><strong>Start from an existing structure</strong></summary>
@@ -108,7 +124,11 @@ The selected chain must match the input sequence and provide the required heavy 
 
 </details>
 
-## MSA options
+<a id="msa-options"></a>
+
+## 🧬 MSA options
+
+Each protein entity needs a matching MSA. Choose the option that fits your inputs:
 
 | Available resources | How to use them |
 | :--- | :--- |
@@ -117,7 +137,10 @@ The selected chain must match the input sequence and provide the required heavy 
 | A local ColabFold/MMseqs2 database | Pass `--msa-local-db /data/colabfold_db` to search before inference. |
 | An online MSA service | Follow the [online MSA guide](docs/msa_online.md), then provide the resulting A3M file. |
 
-For local search, first install ColabFold/MMseqs2 and prepare the databases using the [MSA setup guide](INSTALL.md#4-local-msa-search-with-colabfoldmmseqs2):
+<details>
+<summary><strong>Search a local MSA database</strong></summary>
+
+Install ColabFold/MMseqs2 and prepare the databases using the [MSA setup guide](INSTALL.md#4-local-msa-search-with-colabfoldmmseqs2), then run:
 
 ```bash
 oridynamic sample \
@@ -128,11 +151,20 @@ oridynamic sample \
   --out runs/from_sequence
 ```
 
-For a minimal installation smoke test, `--single-sequence` uses only the query sequence. Use an MSA for normal ensemble-generation runs.
+</details>
 
-## Batch and complexes
+For a query-only installation check, use `--single-sequence`. Use an MSA for normal ensemble-generation runs.
 
-**Independent proteins.** Each FASTA entry is treated as a separate target. Place the corresponding alignments in `msas/<target>.a3m`:
+<a id="batch-and-complexes"></a>
+
+## 🧩 Batch and complexes
+
+Use a multi-entry FASTA for independent proteins, or JSON to describe protein–ligand and protein–protein systems. The [quick-start examples](#quick-start) include both complex types; see the [complex-input guide](docs/complex_inputs.md) for ligand definitions, chain-specific MSAs, and optional structures.
+
+<details>
+<summary><strong>Run a batch of independent proteins</strong></summary>
+
+Each FASTA entry is treated as a separate target. Place the corresponding alignments in `msas/<target>.a3m`:
 
 ```bash
 oridynamic sample \
@@ -143,26 +175,21 @@ oridynamic sample \
 
 Optional initial structures can be supplied with `--structure-dir anchors`, using matching target names. See the [batch guide](docs/batch_inference.md) for mixed inputs and per-target settings.
 
-**Protein–ligand and protein–protein systems.** Describe the chains and ligands together in a JSON input. The bundled examples contain three monomers, one protein–ligand complex, and one protein–protein assembly:
+</details>
 
-```bash
-oridynamic sample \
-  --input-json examples/five_cases_with_msa.json \
-  --seeds 0 --samples-per-seed 2 --sample-chunk-size 1 \
-  --out runs/complex_examples
-```
+<a id="documentation"></a>
 
-The [complex-input guide](docs/complex_inputs.md) covers ligand definitions, chain-specific MSAs, and optional structures. For new sequences, supply matching MSAs or use local search. The [example guide](examples/README.md) also covers the original sequence-only input.
+## 📖 Documentation
 
-## Documentation
-
-| Guide | Contents |
+| I want to… | Guide |
 | :--- | :--- |
-| [Installation](INSTALL.md) | Environment setup, checkpoints, CCD resources, and Docker |
-| [Batch inference](docs/batch_inference.md) | Input naming, sampling options, output files, and timing |
-| [Complex inputs](docs/complex_inputs.md) | Protein–ligand and protein–protein input formats |
-| [Online MSA](docs/msa_online.md) | Preparing alignments with an external service |
-| [Examples](examples/README.md) | Five example systems and installation smoke tests |
-| [Model notes](docs/model_card.md) | Model components, sampling settings, and usage notes |
+| Set up the environment, weights, or Docker | [Installation](INSTALL.md) |
+| Run batches and understand the outputs | [Batch inference](docs/batch_inference.md) |
+| Prepare protein–ligand or protein–protein inputs | [Complex inputs](docs/complex_inputs.md) |
+| Generate MSAs with an online service | [Online MSA](docs/msa_online.md) |
+| Explore the five bundled systems | [Examples](examples/README.md) |
+| Check model components and sampling settings | [Model notes](docs/model_card.md) |
+
+---
 
 Copyright 2026 LGLab Frontier AI Group. OriDynamic inference code is licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for upstream attribution; third-party resources retain their respective terms.
