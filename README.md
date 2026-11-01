@@ -2,7 +2,7 @@
 
 <img src="docs/images/oridynamic-logo.png" alt="OriDynamic" width="560">
 
-**All-atom conformational ensembles for biomolecular systems**
+**Understanding biomolecular dynamics is a key step toward biological intelligence.**
 
 [![Beta release: 0.1.0b0](docs/images/release.svg)](pyproject.toml)
 [![Apache-2.0 license](docs/images/license.svg)](LICENSE)
@@ -28,8 +28,8 @@ The [five bundled examples](#quick-start) include matching MSAs and cover all th
 The tested inference environment uses **Linux, Python 3.11, PyTorch 2.7.1 with CUDA 12.6, and an NVIDIA GPU**.
 
 ```bash
-git clone https://github.com/JiahaoYoung0520/oridynamic_test_alpha.git
-cd oridynamic_test_alpha
+git clone https://github.com/JiahaoYoung0520/oridynamic_test.git
+cd oridynamic_test
 
 conda create -n oridynamic python=3.11 -y
 conda activate oridynamic

@@ -29,8 +29,8 @@ The inference image does not include MSA databases or search tools. Generate MSA
 The tested runtime uses Linux x86_64, Python 3.11, and PyTorch 2.7.1 with CUDA 12.6. For a fresh checkout and environment:
 
 ```bash
-git clone https://github.com/JiahaoYoung0520/oridynamic_test_alpha.git
-cd oridynamic_test_alpha
+git clone https://github.com/JiahaoYoung0520/oridynamic_test.git
+cd oridynamic_test
 
 conda create -n oridynamic python=3.11 -y
 conda activate oridynamic
